@@ -29,6 +29,15 @@ const headerScrollContainer = ref<HTMLElement | null>(null)
 const leftHourColumnRef = ref<HTMLElement | null>(null)
 const rightHourColumnRef = ref<HTMLElement | null>(null)
 
+const currentHourFraction = ref<number | null>(null)
+
+const updateCurrentHourFraction = () => {
+  const now = new Date()
+  const hour = now.getHours()
+  const minute = now.getMinutes()
+  currentHourFraction.value = hour + (minute / 60)
+}
+
 const timeNotation = ref<'12h' | '24h'>('12h')
 
 const dayWidth = ref(144)
@@ -52,8 +61,12 @@ const recalculateDayWidth = () => {
   }
 }
 
+const startingVisibleHour = 8;
+
 onMounted(() => {
   recalculateDayWidth()
+  updateCurrentHourFraction()
+  setInterval(updateCurrentHourFraction, 60000)
   window.addEventListener('resize', recalculateDayWidth)
   requestAnimationFrame(() => {
     scrollToCurrentWeek()
@@ -62,9 +75,9 @@ onMounted(() => {
     const elR = rightHourColumnRef.value
     if (elB && elH && elR) {
       const hourHeight = elH.scrollHeight / 24
-      elB.scrollTop = hourHeight * 7
-      elH.scrollTop = hourHeight * 7
-      elR.scrollTop = hourHeight * 7
+      elB.scrollTop = hourHeight * (startingVisibleHour - 1)
+      elH.scrollTop = hourHeight * (startingVisibleHour - 1)
+      elR.scrollTop = hourHeight * (startingVisibleHour - 1)
     }
   })
 })
@@ -105,10 +118,12 @@ watchEffect(() => {
   <!-- GRID CONTAINER: LEFT HOUR | CALENDAR | RIGHT HOUR -->
   <div class="grid grid-cols-[auto_1fr_auto] h-screen w-full overflow-hidden p-4 gap-x-0">
     <!-- LEFT FIXED HOUR COLUMN -->
-    <div ref="leftHourColumnRef" class="flex flex-col w-12 bg-white z-10 overflow-y-auto scrollbar-none">
-      <div class="h-[64px] shrink-0"></div>
-      <div v-for="hour in hours" :key="'hour-left-' + hour" class="h-[72px] shrink-0">
-        <CalendarHour :timeNotation="timeNotation" :hour="hour" containerClass="justify-end pr-2 whitespace-nowrap" />
+    <div class="relative w-12  z-10 overflow-hidden"
+      style="mask-image: linear-gradient(to bottom, transparent 0px, black 64px); -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 64px);">
+      <div ref="leftHourColumnRef" class="flex flex-col overflow-y-auto h-full scrollbar-none">
+        <div v-for="hour in hours" :key="'hour-left-' + hour" class="h-[72px] shrink-0">
+          <CalendarHour :timeNotation="timeNotation" :hour="hour" containerClass="justify-end pr-2 whitespace-nowrap" />
+        </div>
       </div>
     </div>
 
@@ -117,11 +132,8 @@ watchEffect(() => {
       <!-- HEADER SCROLL AREA -->
       <div ref="headerScrollContainer" class="overflow-x-auto scrollbar-none" :style="{ width: calendarWidth }">
         <div class="flex w-max">
-          <div
-            v-for="(date, index) in dateObjects"
-            :key="'head-' + date.toDateString()"
-            :style="{ width: `${dayWidth}px` }"
-            >
+          <div v-for="(date, index) in dateObjects" :key="'head-' + date.toDateString()"
+            :style="{ width: `${dayWidth}px` }">
             <CalendarCell :width="dayWidth" :class="[
               'h-[64px] border-[#E0E0E0] border-b-[1px]',
               isToday(date) ? 'bg-[#EFF6FF]' : isWeekend(getDayName(date)) ? 'bg-[#FAFAFA]' : 'bg-white',
@@ -137,27 +149,24 @@ watchEffect(() => {
       </div>
 
       <!-- BODY SCROLL AREA -->
-      <div
-        ref="bodyScrollContainer"
-        class="overflow-x-auto overflow-y-auto"
-        :style="{ height: 'calc(100vh - 72px)', width: calendarWidth }"
-      >
+      <div ref="bodyScrollContainer" class="overflow-x-auto overflow-y-auto"
+        :style="{ height: 'calc(100vh - 72px)', width: calendarWidth }">
         <div class="w-max">
-          <div
-            v-for="hour in hours"
-            :key="'row-' + hour"
-            class="flex h-[72px]"
-          >
-            <div
-              v-for="(date) in dateObjects"
-              :key="date.toDateString() + '-' + hour"
-              :style="{ width: `${dayWidth}px` }"
-            >
+          <div v-for="hour in hours" :key="'row-' + hour" class="flex h-[72px]">
+            <div v-for="(date) in dateObjects" :key="date.toDateString() + '-' + hour"
+              :style="{ width: `${dayWidth}px` }">
               <CalendarCell :width="dayWidth" :style="{ width: `${dayWidth}px` }" :class="[
                 'h-full border-[#E0E0E0] border-l-[1px] border-b-[1px]',
                 isToday(date) ? 'bg-[#EFF6FF]' : isWeekend(getDayName(date)) ? 'bg-[#FAFAFA]' : 'bg-white'
               ]">
                 <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-[#F7F7F7]"></div>
+                <template v-if="isToday(date) && currentHourFraction !== null && hour === 0">
+                  <!-- DOT -->
+                  <div class="absolute left-[-4px] right-0 h-[8px] w-[8px] rounded-full  z-30"
+                    :style="{ top: `${72 * currentHourFraction - 4}px` }"></div>
+                  <div class="absolute left-0 right-0 h-[2px]  z-30" :style="{ top: `${72 * currentHourFraction}px` }">
+                  </div>
+                </template>
               </CalendarCell>
             </div>
           </div>
@@ -166,10 +175,12 @@ watchEffect(() => {
     </div>
 
     <!-- RIGHT FIXED HOUR COLUMN -->
-    <div ref="rightHourColumnRef" class="flex flex-col w-12 bg-white z-10 overflow-y-auto scrollbar-none">
-      <div class="h-[64px] shrink-0"></div>
-      <div v-for="hour in hours" :key="'hour-right-' + hour" class="h-[72px] shrink-0">
-        <CalendarHour :timeNotation="timeNotation" :hour="hour" containerClass="justify-start pl-2 whitespace-nowrap" />
+    <div class="relative w-12  z-10 overflow-hidden"
+      style="mask-image: linear-gradient(to bottom, transparent 0px, black 64px); -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 64px);">
+      <div ref="rightHourColumnRef" class="flex flex-col overflow-y-auto h-full scrollbar-none">
+        <div v-for="hour in hours" :key="'hour-right-' + hour" class="h-[72px] shrink-0">
+          <CalendarHour :timeNotation="timeNotation" :hour="hour" containerClass="justify-start pl-2 whitespace-nowrap" />
+        </div>
       </div>
     </div>
   </div>
