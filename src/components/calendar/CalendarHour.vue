@@ -1,22 +1,25 @@
 <script setup lang="ts">
 defineProps<{
   containerClass?: string,
-  hour: number
+  hour: number,
+  timeNotation: '12h' | '24h'
 }>()
 </script>
 
 <template>
-    <div class="w-4 flex items-start justify-start text-xs text-gray-500" :class="containerClass">
-      <span class="hour" v-if="hour !== 0">{{ hour === 0 ? 12 : hour > 12 ? hour - 12 : hour }} {{ hour < 12 ? 'AM' : 'PM' }}</span>
-    </div>
+  <div class="w-4 flex justify-start items-start" :class="containerClass">
+    <span v-if="hour !== 0" class="text-[12px] text-[#71717A] font-normal leading-none -mt-[6px]">
+      {{ timeNotation === '12h' ? (hour === 0 ? 12 : hour > 12 ? hour - 12 : hour) + (hour < 12 ? ' AM' : ' PM') : hour }}
+    </span>
+  </div>
 </template>
 
 <style scoped lang="css">
-  .hour {
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 16px;
-    letter-spacing: 0%;
-    color: #71717A;
-  }
+.hour {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0%;
+  color: #71717A;
+}
 </style>
