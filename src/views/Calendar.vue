@@ -23,28 +23,37 @@ const hours = Array.from({ length: 24 }, (_, i) => i)
 const isWeekend = (day: string) => day === 'SAT' || day === 'SUN'
 const isToday = (date: Date) => isSameDay(date, today)
 
+const calendarContainerRef = ref<HTMLElement | null>(null)
 const bodyScrollContainer = ref<HTMLElement | null>(null)
 const headerScrollContainer = ref<HTMLElement | null>(null)
 const hourColumnRef = ref<HTMLElement | null>(null)
 
 const timeNotation = ref<'12h' | '24h'>('12h')
 
-const DAY_WIDTH = 144
+const dayWidth = ref(144)
 const VISIBLE_DAYS = 7
-const calendarWidth = `${DAY_WIDTH * VISIBLE_DAYS}px`;
+const calendarWidth = ref(`${dayWidth.value * VISIBLE_DAYS}px`)
 
 const scrollToCurrentWeek = () => {
   const el = bodyScrollContainer.value
   if (el) {
-    const dayWidth = 144
-    const scrollLeft = dayWidth * 7 // skip 1 week (prev)
+    const scrollLeft = dayWidth.value * 7 // skip 1 week (prev)
     el.scrollLeft = scrollLeft
     headerScrollContainer.value!.scrollLeft = scrollLeft
   }
+}
 
+const recalculateDayWidth = () => {
+  if (calendarContainerRef.value) {
+    const containerWidth = calendarContainerRef.value.clientWidth
+    dayWidth.value = containerWidth / VISIBLE_DAYS
+    calendarWidth.value = `${dayWidth.value * VISIBLE_DAYS}px`
+  }
 }
 
 onMounted(() => {
+  recalculateDayWidth()
+  window.addEventListener('resize', recalculateDayWidth)
   requestAnimationFrame(() => {
     scrollToCurrentWeek()
     const elB = bodyScrollContainer.value
@@ -74,28 +83,35 @@ watchEffect(() => {
     })
   }
 })
+
+watchEffect(() => {
+  recalculateDayWidth()
+})
 </script>
 
 <template>
-  <div class="flex w-full h-screen overflow-hidden p-4">
-    <!-- FIXED LEFT COLUMN -->
-    <div ref="hourColumnRef" class="flex flex-col min-w-12 bg-white z-10 overflow-y-auto">
-      <!-- HEADER SPACER -->
+  <!-- GRID CONTAINER: LEFT HOUR | CALENDAR | RIGHT HOUR -->
+  <div class="grid grid-cols-[auto_1fr_auto] h-screen w-full overflow-hidden p-4 gap-x-0">
+    <!-- LEFT FIXED HOUR COLUMN -->
+    <div ref="hourColumnRef" class="flex flex-col w-12 bg-white z-10 overflow-y-auto">
       <div class="h-[64px] shrink-0"></div>
-      <!-- HOURS -->
-      <div v-for="hour in hours" :key="'hour-' + hour" class="h-[72px] shrink-0">
+      <div v-for="hour in hours" :key="'hour-left-' + hour" class="h-[72px] shrink-0">
         <CalendarHour :timeNotation="timeNotation" :hour="hour" containerClass="justify-end pr-2 whitespace-nowrap" />
       </div>
     </div>
 
-    <!-- SCROLLABLE RIGHT (Header + Body) -->
-    <div class="flex flex-col flex-grow">
-      <!-- SCROLLABLE HEADER -->
-      <div ref="headerScrollContainer" :style="{ width: calendarWidth }" class="overflow-x-auto">
+    <!-- CENTER CALENDAR COLUMN -->
+    <div class="flex flex-col" ref="calendarContainerRef">
+      <!-- HEADER SCROLL AREA -->
+      <div ref="headerScrollContainer" class="overflow-x-auto" :style="{ width: calendarWidth }">
         <div class="flex w-max">
-          <div v-for="(date, index) in dateObjects" :key="'head-' + date.toDateString()" class="w-[144px]">
-            <CalendarCell :class="[
-              'h-[64px] border-[#E0E0E0] border-b-[3px]',
+          <div
+            v-for="(date, index) in dateObjects"
+            :key="'head-' + date.toDateString()"
+            :style="{ width: `${dayWidth}px` }"
+            >
+            <CalendarCell :width="dayWidth" :class="[
+              'h-[64px] border-[#E0E0E0] border-b-[1px]',
               isToday(date) ? 'bg-[#EFF6FF]' : isWeekend(getDayName(date)) ? 'bg-[#FAFAFA]' : 'bg-white',
               index === 0 ? 'border-l-[0px]' : 'border-l-[1px]'
             ]">
@@ -108,16 +124,27 @@ watchEffect(() => {
         </div>
       </div>
 
-      <!-- SCROLLABLE BODY -->
-      <div ref="bodyScrollContainer" class="overflow-x-auto overflow-y-auto" :style="{ height: 'calc(100vh - 72px)', width: calendarWidth }">
+      <!-- BODY SCROLL AREA -->
+      <div
+        ref="bodyScrollContainer"
+        class="overflow-x-auto overflow-y-auto"
+        :style="{ height: 'calc(100vh - 72px)', width: calendarWidth }"
+      >
         <div class="w-max">
-          <div v-for="hour in hours" :key="'row-' + hour" class="flex min-h-16">
-            <div v-for="(date, index) in dateObjects" :key="date.toDateString() + '-' + hour" class="w-[144px]">
-              <CalendarCell :class="[
-                'h-[72px]  border-[#E0E0E0] border-l-[1px] border-b-[1px]',
+          <div
+            v-for="hour in hours"
+            :key="'row-' + hour"
+            class="flex h-[72px]"
+          >
+            <div
+              v-for="(date) in dateObjects"
+              :key="date.toDateString() + '-' + hour"
+              :style="{ width: `${dayWidth}px` }"
+            >
+              <CalendarCell :width="dayWidth" :style="{ width: `${dayWidth}px` }" :class="[
+                'h-full border-[#E0E0E0] border-l-[1px] border-b-[1px]',
                 isToday(date) ? 'bg-[#EFF6FF]' : isWeekend(getDayName(date)) ? 'bg-[#FAFAFA]' : 'bg-white'
               ]">
-                <!-- HORIZONTAL LINE -->
                 <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-[#F7F7F7]"></div>
               </CalendarCell>
             </div>
@@ -125,13 +152,12 @@ watchEffect(() => {
         </div>
       </div>
     </div>
-    <!-- FIXED RIGHT COLUMN -->
-    <div ref="" class="flex flex-col min-w-12 bg-white z-10 overflow-y-auto">
-      <!-- HEADER SPACER -->
-      <div class="h-16"></div>
-      <!-- HOURS -->
-      <div v-for="hour in hours" :key="'hour-' + hour" class="min-h-16">
-        <CalendarHour :timeNotation="timeNotation" :hour="hour" containerClass="justify-start pr-2 whitespace-nowrap" />
+
+    <!-- RIGHT FIXED HOUR COLUMN -->
+    <div class="flex flex-col w-12 bg-white z-10 overflow-y-auto">
+      <div class="h-[64px] shrink-0"></div>
+      <div v-for="hour in hours" :key="'hour-right-' + hour" class="h-[72px] shrink-0">
+        <CalendarHour :timeNotation="timeNotation" :hour="hour" containerClass="justify-start pl-2 whitespace-nowrap" />
       </div>
     </div>
   </div>
