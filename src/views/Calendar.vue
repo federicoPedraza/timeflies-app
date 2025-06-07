@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, watchEffect } from 'vue'
 import { startOfWeek, addDays, isSameDay } from 'date-fns'
 import CalendarHour from '../components/calendar/CalendarHour.vue'
 import CalendarCell from '../components/calendar/CalendarCell.vue'
@@ -7,15 +7,16 @@ import { formatDate } from '@/utils/dates/date-formatter'
 
 const startsWithSunday = true
 
-const baseDays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-const days = startsWithSunday
-  ? [...baseDays.slice(-1), ...baseDays.slice(0, -1)]
-  : baseDays
+const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+const getDayName = (date: Date) => dayNames[date.getDay()]
 
 const today = new Date()
 const weekStart = startOfWeek(today, { weekStartsOn: startsWithSunday ? 0 : 1 })
+const visibleWeeks = 3; // this is for prev, curr, and next
+const daysPerWeek = 7 * visibleWeeks;
 
-const dateObjects = days.map((_, index) => addDays(weekStart, index))
+const startDate = addDays(weekStart, -7); // this is for prev
+const dateObjects = Array.from({ length: daysPerWeek }, (_, i) => addDays(startDate, i))
 
 const hours = Array.from({ length: 24 }, (_, i) => i)
 
@@ -23,67 +24,114 @@ const isWeekend = (day: string) => day === 'SAT' || day === 'SUN'
 const isToday = (date: Date) => isSameDay(date, today)
 
 const bodyScrollContainer = ref<HTMLElement | null>(null)
+const headerScrollContainer = ref<HTMLElement | null>(null)
+const hourColumnRef = ref<HTMLElement | null>(null)
 
 const timeNotation = ref<'12h' | '24h'>('12h')
 
-onMounted(async () => {
-  await nextTick()
+const DAY_WIDTH = 144
+const VISIBLE_DAYS = 7
+const calendarWidth = `${DAY_WIDTH * VISIBLE_DAYS}px`;
+
+const scrollToCurrentWeek = () => {
   const el = bodyScrollContainer.value
   if (el) {
-    const hourHeight = el.scrollHeight / 24
-    el.scrollTop = hourHeight * 7
+    const dayWidth = 144
+    const scrollLeft = dayWidth * 7 // skip 1 week (prev)
+    el.scrollLeft = scrollLeft
+    headerScrollContainer.value!.scrollLeft = scrollLeft
+  }
+
+}
+
+onMounted(() => {
+  requestAnimationFrame(() => {
+    scrollToCurrentWeek()
+    const elB = bodyScrollContainer.value
+    const elH = hourColumnRef.value
+    if (elB && elH) {
+      const hourHeight = elH.scrollHeight / 24
+      elB.scrollTop = hourHeight * 7
+      elH.scrollTop = hourHeight * 7
+    }
+  })
+})
+
+// HEADER -> BODY SCROLL
+watchEffect(() => {
+  if (headerScrollContainer.value && bodyScrollContainer.value) {
+    bodyScrollContainer.value.addEventListener('scroll', () => {
+      headerScrollContainer.value!.scrollLeft = bodyScrollContainer.value!.scrollLeft
+    })
+  }
+})
+
+// BODY -> HOUR COLUMN SCROLL
+watchEffect(() => {
+  if (bodyScrollContainer.value && hourColumnRef.value) {
+    bodyScrollContainer.value.addEventListener('scroll', () => {
+      hourColumnRef.value!.scrollTop = bodyScrollContainer.value!.scrollTop
+    })
   }
 })
 </script>
 
 <template>
-  <div class="flex flex-col w-full py-4 px-4">
-    <!-- HEADER -->
-    <div class="flex flex-row w-full">
-      <!-- LEFT HOUR SPACER -->
-      <div class="min-w-12 min-h-16"></div>
+  <div class="flex w-full h-screen overflow-hidden p-4">
+    <!-- FIXED LEFT COLUMN -->
+    <div ref="hourColumnRef" class="flex flex-col min-w-12 bg-white z-10 overflow-y-auto">
+      <!-- HEADER SPACER -->
+      <div class="h-[64px] shrink-0"></div>
+      <!-- HOURS -->
+      <div v-for="hour in hours" :key="'hour-' + hour" class="h-[72px] shrink-0">
+        <CalendarHour :timeNotation="timeNotation" :hour="hour" containerClass="justify-end pr-2 whitespace-nowrap" />
+      </div>
+    </div>
 
-      <!-- DAY HEADERS -->
-      <div class="flex flex-grow w-full">
-        <div class="flex flex-grow" v-for="(day, index) in days" :key="day">
-          <CalendarCell class="w-full" :class="[
-            'pt-1 pr-2 pb-4 pl-2 border-[#E0E0E0]',
-            isToday(dateObjects[index]) ? 'bg-[#EFF6FF]' : isWeekend(day) ? 'bg-[#FAFAFA]' : 'bg-white',
-            index === 0 ? 'border-l-[0px]' : 'border-l-[1px]',
-          ]">
-            <div class="flex flex-col">
-              <span class="whitespace-nowrap font-bold text-[10px] text-[#71717A]">{{ day }}</span>
-              <span class="whitespace-nowrap text-2xl text-[#000000] font-bold">
-                {{ formatDate(dateObjects[index], 'dd') }}
-              </span>
-            </div>
-          </CalendarCell>
+    <!-- SCROLLABLE RIGHT (Header + Body) -->
+    <div class="flex flex-col flex-grow">
+      <!-- SCROLLABLE HEADER -->
+      <div ref="headerScrollContainer" :style="{ width: calendarWidth }" class="overflow-x-auto">
+        <div class="flex w-max">
+          <div v-for="(date, index) in dateObjects" :key="'head-' + date.toDateString()" class="w-[144px]">
+            <CalendarCell :class="[
+              'h-[64px] border-[#E0E0E0] border-b-[3px]',
+              isToday(date) ? 'bg-[#EFF6FF]' : isWeekend(getDayName(date)) ? 'bg-[#FAFAFA]' : 'bg-white',
+              index === 0 ? 'border-l-[0px]' : 'border-l-[1px]'
+            ]">
+              <div class="flex flex-col pt-1 pr-2 pb-4 pl-2">
+                <span class="text-[10px] font-bold text-[#71717A]">{{ getDayName(date) }}</span>
+                <span class="text-2xl font-bold text-black">{{ formatDate(date, 'dd') }}</span>
+              </div>
+            </CalendarCell>
+          </div>
         </div>
       </div>
 
-      <!-- RIGHT HOUR SPACER -->
-      <div class="min-w-12 min-h-16"></div>
-    </div>
-
-    <!-- BODY -->
-    <div ref="bodyScrollContainer" class="overflow-y-auto h-screen">
-      <div v-for="hour in hours" :key="hour" class="flex flex-row min-h-16 w-full">
-        <!-- LEFT HOUR LABEL -->
-        <CalendarHour :timeNotation="timeNotation" class="min-w-12 pr-2 whitespace-nowrap" :hour="hour" containerClass="justify-end" />
-
-        <!-- MAIN CALENDAR CELLS -->
-        <div class="flex flex-grow w-full">
-          <div class="flex flex-grow" v-for="(day, index) in days" :key="day + '-' + hour">
-            <CalendarCell class="w-full h-full" :class="[
-              'pt-1 pr-2 pb-4 pl-2 border-[#E0E0E0] border-[1px] border-b-0 border-r-0',
-              isToday(dateObjects[index]) ? 'bg-[#EFF6FF]' : isWeekend(day) ? 'bg-[#FAFAFA]' : 'bg-white',
-              index === 0 ? 'border-l-0' : '',
-            ]" />
+      <!-- SCROLLABLE BODY -->
+      <div ref="bodyScrollContainer" class="overflow-x-auto overflow-y-auto" :style="{ height: 'calc(100vh - 72px)', width: calendarWidth }">
+        <div class="w-max">
+          <div v-for="hour in hours" :key="'row-' + hour" class="flex min-h-16">
+            <div v-for="(date, index) in dateObjects" :key="date.toDateString() + '-' + hour" class="w-[144px]">
+              <CalendarCell :class="[
+                'h-[72px]  border-[#E0E0E0] border-l-[1px] border-b-[1px]',
+                isToday(date) ? 'bg-[#EFF6FF]' : isWeekend(getDayName(date)) ? 'bg-[#FAFAFA]' : 'bg-white'
+              ]">
+                <!-- HORIZONTAL LINE -->
+                <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-[#F7F7F7]"></div>
+              </CalendarCell>
+            </div>
           </div>
         </div>
-
-        <!-- RIGHT HOUR LABEL -->
-        <CalendarHour :timeNotation="timeNotation" class="min-w-12 pl-2 whitespace-nowrap" :hour="hour" containerClass="justify-start" />
+      </div>
+    </div>
+    <!-- FIXED RIGHT COLUMN -->
+    <div ref="" class="flex flex-col min-w-12 bg-white z-10 overflow-y-auto">
+      <!-- HEADER SPACER -->
+      <div class="h-16"></div>
+      <!-- HOURS -->
+      <div v-for="hour in hours" :key="'hour-' + hour" class="min-h-16">
+        <CalendarHour :timeNotation="timeNotation" :hour="hour" containerClass="justify-start pr-2 whitespace-nowrap" />
       </div>
     </div>
   </div>

@@ -7,8 +7,8 @@ defineProps<{
 </script>
 
 <template>
-  <div class="w-4 flex justify-start items-start" :class="containerClass">
-    <span v-if="hour !== 0" class="text-[12px] text-[#71717A] font-normal leading-none -mt-[6px]">
+  <div class="flex justify-start items-start" :class="containerClass">
+    <span class="text-[12px] text-[#71717A] font-normal leading-none -mt-[12px]">
       {{ timeNotation === '12h' ? (hour === 0 ? 12 : hour > 12 ? hour - 12 : hour) + (hour < 12 ? ' AM' : ' PM') : hour + ':00' }}
     </span>
   </div>
