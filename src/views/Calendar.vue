@@ -41,9 +41,9 @@ onMounted(async () => {
       <div class="flex flex-grow w-full">
         <div class="flex flex-grow" v-for="(day, index) in days" :key="day">
           <CalendarCell class="w-full" :class="[
-            'pt-1 pr-2 pb-4 pl-2 border-[#E0E0E0] border-l-[1px]',
+            'pt-1 pr-2 pb-4 pl-2 border-[#E0E0E0]',
             isToday(day) ? 'bg-[#EFF6FF]' : isWeekend(day) ? 'bg-[#FAFAFA]' : 'bg-white',
-            index === 0 ? 'border-l-[0px]' : '',
+            index === 0 ? 'border-l-[0px]' : 'border-l-[1px]',
           ]">
             <div class="flex flex-col">
               <span class="whitespace-nowrap font-bold text-[10px] text-[#71717A]">{{ day }}</span>
