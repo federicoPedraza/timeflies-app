@@ -26,7 +26,8 @@ const isToday = (date: Date) => isSameDay(date, today)
 const calendarContainerRef = ref<HTMLElement | null>(null)
 const bodyScrollContainer = ref<HTMLElement | null>(null)
 const headerScrollContainer = ref<HTMLElement | null>(null)
-const hourColumnRef = ref<HTMLElement | null>(null)
+const leftHourColumnRef = ref<HTMLElement | null>(null)
+const rightHourColumnRef = ref<HTMLElement | null>(null)
 
 const timeNotation = ref<'12h' | '24h'>('12h')
 
@@ -57,11 +58,13 @@ onMounted(() => {
   requestAnimationFrame(() => {
     scrollToCurrentWeek()
     const elB = bodyScrollContainer.value
-    const elH = hourColumnRef.value
-    if (elB && elH) {
+    const elH = leftHourColumnRef.value
+    const elR = rightHourColumnRef.value
+    if (elB && elH && elR) {
       const hourHeight = elH.scrollHeight / 24
       elB.scrollTop = hourHeight * 7
       elH.scrollTop = hourHeight * 7
+      elR.scrollTop = hourHeight * 7
     }
   })
 })
@@ -75,11 +78,20 @@ watchEffect(() => {
   }
 })
 
-// BODY -> HOUR COLUMN SCROLL
+// BODY -> LEFT HOUR COLUMN SCROLL
 watchEffect(() => {
-  if (bodyScrollContainer.value && hourColumnRef.value) {
+  if (bodyScrollContainer.value && leftHourColumnRef.value) {
     bodyScrollContainer.value.addEventListener('scroll', () => {
-      hourColumnRef.value!.scrollTop = bodyScrollContainer.value!.scrollTop
+      leftHourColumnRef.value!.scrollTop = bodyScrollContainer.value!.scrollTop
+    })
+  }
+})
+
+// BODY -> RIGHT HOUR COLUMN SCROLL
+watchEffect(() => {
+  if (bodyScrollContainer.value && rightHourColumnRef.value) {
+    bodyScrollContainer.value.addEventListener('scroll', () => {
+      rightHourColumnRef.value!.scrollTop = bodyScrollContainer.value!.scrollTop
     })
   }
 })
@@ -93,7 +105,7 @@ watchEffect(() => {
   <!-- GRID CONTAINER: LEFT HOUR | CALENDAR | RIGHT HOUR -->
   <div class="grid grid-cols-[auto_1fr_auto] h-screen w-full overflow-hidden p-4 gap-x-0">
     <!-- LEFT FIXED HOUR COLUMN -->
-    <div ref="hourColumnRef" class="flex flex-col w-12 bg-white z-10 overflow-y-auto">
+    <div ref="leftHourColumnRef" class="flex flex-col w-12 bg-white z-10 overflow-y-auto scrollbar-none">
       <div class="h-[64px] shrink-0"></div>
       <div v-for="hour in hours" :key="'hour-left-' + hour" class="h-[72px] shrink-0">
         <CalendarHour :timeNotation="timeNotation" :hour="hour" containerClass="justify-end pr-2 whitespace-nowrap" />
@@ -103,7 +115,7 @@ watchEffect(() => {
     <!-- CENTER CALENDAR COLUMN -->
     <div class="flex flex-col" ref="calendarContainerRef">
       <!-- HEADER SCROLL AREA -->
-      <div ref="headerScrollContainer" class="overflow-x-auto" :style="{ width: calendarWidth }">
+      <div ref="headerScrollContainer" class="overflow-x-auto scrollbar-none" :style="{ width: calendarWidth }">
         <div class="flex w-max">
           <div
             v-for="(date, index) in dateObjects"
@@ -154,7 +166,7 @@ watchEffect(() => {
     </div>
 
     <!-- RIGHT FIXED HOUR COLUMN -->
-    <div class="flex flex-col w-12 bg-white z-10 overflow-y-auto">
+    <div ref="rightHourColumnRef" class="flex flex-col w-12 bg-white z-10 overflow-y-auto scrollbar-none">
       <div class="h-[64px] shrink-0"></div>
       <div v-for="hour in hours" :key="'hour-right-' + hour" class="h-[72px] shrink-0">
         <CalendarHour :timeNotation="timeNotation" :hour="hour" containerClass="justify-start pl-2 whitespace-nowrap" />
