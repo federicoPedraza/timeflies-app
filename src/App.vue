@@ -1,14 +1,14 @@
-<script setup lang="ts">
-import Calendar from './components/Calendar.vue'
-
-</script>
-
 <template>
   <main>
-    <Calendar />
+    <router-view />
   </main>
 </template>
 
-<style scoped>
-
+<style scoped lang="css">
+main {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
 </style>
