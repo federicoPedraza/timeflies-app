@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watchEffect } from 'vue'
-import { startOfWeek, addDays, isSameDay } from 'date-fns'
+import { ref, onMounted, nextTick, watchEffect, computed } from 'vue'
+import { startOfWeek, addDays, isSameDay, format } from 'date-fns'
 import CalendarHour from '../components/calendar/CalendarHour.vue'
 import CalendarCell from '../components/calendar/CalendarCell.vue'
 import { formatDate } from '@/utils/dates/date-formatter'
@@ -16,7 +16,13 @@ const visibleWeeks = 3; // this is for prev, curr, and next
 const daysPerWeek = 7 * visibleWeeks;
 
 const startDate = addDays(weekStart, -7); // this is for prev
-const dateObjects = Array.from({ length: daysPerWeek }, (_, i) => addDays(startDate, i))
+const currentWeekStart = ref(startOfWeek(new Date(), { weekStartsOn: startsWithSunday ? 0 : 1 }))
+const dateObjects = ref<Date[]>([])
+
+const generateDateRange = (center: Date) => {
+  const start = addDays(center, -7)
+  return Array.from({ length: 7 * 3 }, (_, i) => addDays(start, i))
+}
 
 const hours = Array.from({ length: 24 }, (_, i) => i)
 
@@ -68,11 +74,41 @@ const recalculateDayWidth = () => {
 
 const startingVisibleHour = 8;
 
+const handleHorizontalScroll = () => {
+  const el = bodyScrollContainer.value
+  if (!el) return
+
+  const threshold = dayWidth.value * 2
+  if (el.scrollLeft < threshold) {
+    // shift left
+    currentWeekStart.value = addDays(currentWeekStart.value, -7)
+    dateObjects.value = generateDateRange(currentWeekStart.value)
+    nextTick(() => scrollToDay(7)) // keep view centered
+  } else if (el.scrollLeft > el.scrollWidth - el.clientWidth - threshold) {
+    // shift right
+    currentWeekStart.value = addDays(currentWeekStart.value, 7)
+    dateObjects.value = generateDateRange(currentWeekStart.value)
+    nextTick(() => scrollToDay(7)) // keep view centered
+  }
+}
+
+const scrollToDay = (dayOffset: number) => {
+  const el = bodyScrollContainer.value
+  if (el) {
+    const left = dayOffset * dayWidth.value
+    el.scrollLeft = left
+    headerScrollContainer.value!.scrollLeft = left
+  }
+}
+
 onMounted(() => {
   recalculateDayWidth()
   updateCurrentHourFraction()
   setInterval(updateCurrentHourFraction, 60000)
   window.addEventListener('resize', recalculateDayWidth)
+  bodyScrollContainer.value?.addEventListener('scroll', handleHorizontalScroll)
+  currentWeekStart.value = startOfWeek(new Date(), { weekStartsOn: startsWithSunday ? 0 : 1 })
+  dateObjects.value = generateDateRange(currentWeekStart.value)
   requestAnimationFrame(() => {
     scrollToCurrentWeek()
     const elB = bodyScrollContainer.value
