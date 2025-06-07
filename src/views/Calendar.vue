@@ -31,6 +31,11 @@ const rightHourColumnRef = ref<HTMLElement | null>(null)
 
 const currentHourFraction = ref<number | null>(null)
 
+const getCurrentHourIndicator = (hour: number) => {
+  if (currentHourFraction.value === null) return 0
+  return 72 * currentHourFraction.value
+}
+
 const updateCurrentHourFraction = () => {
   const now = new Date()
   const hour = now.getHours()
@@ -121,6 +126,7 @@ watchEffect(() => {
     <div class="relative w-12  z-10 overflow-hidden"
       style="mask-image: linear-gradient(to bottom, transparent 0px, black 64px); -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 64px);">
       <div ref="leftHourColumnRef" class="flex flex-col overflow-y-auto h-full scrollbar-none">
+        <div class="h-[64px] shrink-0"></div>
         <div v-for="hour in hours" :key="'hour-left-' + hour" class="h-[72px] shrink-0">
           <CalendarHour :timeNotation="timeNotation" :hour="hour" containerClass="justify-end pr-2 whitespace-nowrap" />
         </div>
@@ -141,7 +147,7 @@ watchEffect(() => {
             ]">
               <div class="flex flex-col pt-1 pr-2 pb-4 pl-2">
                 <span class="text-[10px] font-bold text-[#71717A]">{{ getDayName(date) }}</span>
-                <span class="text-2xl font-bold text-black">{{ formatDate(date, 'dd') }}</span>
+                <span class="text-2xl text-black">{{ formatDate(date, 'dd') }}</span>
               </div>
             </CalendarCell>
           </div>
@@ -155,7 +161,7 @@ watchEffect(() => {
           <div v-for="hour in hours" :key="'row-' + hour" class="flex h-[72px]">
             <div v-for="(date) in dateObjects" :key="date.toDateString() + '-' + hour"
               :style="{ width: `${dayWidth}px` }">
-              <CalendarCell :width="dayWidth" :style="{ width: `${dayWidth}px` }" :class="[
+              <CalendarCell :width="dayWidth" :displayHourIndicator="isToday(date) && currentHourFraction !== null && hour === 0" :hourIndicator="getCurrentHourIndicator(hour)" :style="{ width: `${dayWidth}px` }" :class="[
                 'h-full border-[#E0E0E0] border-l-[1px] border-b-[1px]',
                 isToday(date) ? 'bg-[#EFF6FF]' : isWeekend(getDayName(date)) ? 'bg-[#FAFAFA]' : 'bg-white'
               ]">
@@ -175,11 +181,13 @@ watchEffect(() => {
     </div>
 
     <!-- RIGHT FIXED HOUR COLUMN -->
-    <div class="relative w-12  z-10 overflow-hidden"
+    <div class="relative w-24  z-10 overflow-hidden"
       style="mask-image: linear-gradient(to bottom, transparent 0px, black 64px); -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 64px);">
       <div ref="rightHourColumnRef" class="flex flex-col overflow-y-auto h-full scrollbar-none">
+        <div class="h-[64px] shrink-0"></div>
         <div v-for="hour in hours" :key="'hour-right-' + hour" class="h-[72px] shrink-0">
-          <CalendarHour :timeNotation="timeNotation" :hour="hour" containerClass="justify-start pl-2 whitespace-nowrap" />
+          <CalendarHour :timeNotation="timeNotation" :hour="hour"
+            containerClass="justify-start pl-2 whitespace-nowrap" />
         </div>
       </div>
     </div>
