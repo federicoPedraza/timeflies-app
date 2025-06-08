@@ -339,7 +339,7 @@ watchEffect(() => {
 
                       const popupWidth = 240
                       const rightGap = 8
-                      const leftGap = 68
+                      const leftGap = 100
 
 
                       const rightX = eventRect.right - containerRect.left + container.scrollLeft + rightGap
