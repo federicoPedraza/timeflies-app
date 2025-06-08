@@ -22,6 +22,7 @@ watch(
     const isPreviousMonth = oldMonth && isBefore(newMonth, oldMonth)
 
     dateObjects.value = generateMonthRange(newMonth)
+    console.log('calendar changed', newMonth)
     nextTick(() => {
       if (!isPreviousMonth) {
         scrollToTodayOrFirst()
@@ -120,7 +121,9 @@ onMounted(() => {
 watchEffect(() => {
   if (headerScrollContainer.value && bodyScrollContainer.value) {
     bodyScrollContainer.value.addEventListener('scroll', () => {
-      headerScrollContainer.value!.scrollLeft = bodyScrollContainer.value!.scrollLeft
+      if (headerScrollContainer.value && bodyScrollContainer.value) {
+        headerScrollContainer.value.scrollLeft = bodyScrollContainer.value.scrollLeft
+      }
     })
   }
 })
@@ -129,7 +132,9 @@ watchEffect(() => {
 watchEffect(() => {
   if (bodyScrollContainer.value && leftHourColumnRef.value) {
     bodyScrollContainer.value.addEventListener('scroll', () => {
-      leftHourColumnRef.value!.scrollTop = bodyScrollContainer.value!.scrollTop
+      if (leftHourColumnRef.value && bodyScrollContainer.value) {
+        leftHourColumnRef.value.scrollTop = bodyScrollContainer.value.scrollTop
+      }
     })
   }
 })
@@ -138,7 +143,9 @@ watchEffect(() => {
 watchEffect(() => {
   if (bodyScrollContainer.value && rightHourColumnRef.value) {
     bodyScrollContainer.value.addEventListener('scroll', () => {
-      rightHourColumnRef.value!.scrollTop = bodyScrollContainer.value!.scrollTop
+      if (rightHourColumnRef.value && bodyScrollContainer.value) {
+        rightHourColumnRef.value.scrollTop = bodyScrollContainer.value.scrollTop
+      }
     })
   }
 })

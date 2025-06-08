@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue';
 import { useCalendarStore } from '@/stores/calendar'
 import {
   startOfMonth,
@@ -24,12 +25,31 @@ const lastVisibleDate = endOfWeek(monthEnd, { weekStartsOn: calendarStore.starts
 const fullGridDates = eachDayOfInterval({ start: firstVisibleDate, end: lastVisibleDate })
 
 // split into rows of 7
-const weeks: Date[][] = []
+const weeks = ref<Date[][]>([])
 for (let i = 0; i < fullGridDates.length; i += 7) {
-  weeks.push(fullGridDates.slice(i, i + 7))
+  weeks.value.push(fullGridDates.slice(i, i + 7))
 }
 
 const isToday = (date: Date) => isSameDay(date, calendarStore.today)
+
+watch(() => calendarStore.visibleMonth, (newMonth) => {
+  const monthStart = startOfMonth(newMonth)
+  const monthEnd = endOfMonth(newMonth)
+
+  const firstVisibleDate = startOfWeek(monthStart, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 })
+  const lastVisibleDate = endOfWeek(monthEnd, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 })
+
+  const fullGridDates = eachDayOfInterval({ start: firstVisibleDate, end: lastVisibleDate })
+
+  // ✅ mutate the ref reactively
+  weeks.value = []
+  for (let i = 0; i < fullGridDates.length; i += 7) {
+    weeks.value.push(fullGridDates.slice(i, i + 7))
+  }
+
+  console.log('sidebar calendar changed', newMonth)
+})
+
 </script>
 
 <template>
