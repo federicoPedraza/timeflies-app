@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, watchEffect, watch, nextTick, computed } from 'vue'
+import { ref, onMounted, watchEffect, watch, nextTick } from 'vue'
 import { startOfWeek, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, isBefore, isSameMonth } from 'date-fns'
 import CalendarHour from '../components/calendar/CalendarHour.vue'
 import CalendarCell from '../components/calendar/CalendarCell.vue'
+import CalendarEvent from '../components/calendar/CalendarEvent.vue'
 import { formatDate } from '@/utils/dates/date-formatter'
 import { useCalendarStore } from '@/stores/calendar'
 import { useEventStore, type TimeEvent } from '@/stores/events'
@@ -316,12 +317,8 @@ watchEffect(() => {
                   </div>
                 </template>
                 <!-- EVENTS -->
-                <div v-for="event in getEventsForCell(date, hour)" :key="event.id"
-                  class="absolute border-l-[3px] border-[#0EA5E9] left-0 right-0 rounded-[4px] bg-[#0EA5E91A] p-1.5 overflow-hidden z-40 flex flex-col gap-2"
-                  :style="getEventStyle(event)">
-                  <span class="text-xs text-[#0369A1]">{{ getEventTime(event) }}</span>
-                  <span class="text-xs font-semibold text-[#0369A1]">{{ event.title }}</span>
-                </div>
+                <CalendarEvent v-for="event in getEventsForCell(date, hour)" :key="event.id" :event="event"
+                  :style="getEventStyle(event)" />
               </CalendarCell>
             </div>
           </div>
