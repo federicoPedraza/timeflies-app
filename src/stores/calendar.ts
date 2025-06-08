@@ -17,6 +17,14 @@ export const useCalendarStore = defineStore('calendar', () => {
         visibleMonth.value = month;
     }
 
+    const getDayNamesInOrder = () => {
+        if (startsWithSunday) {
+            return dayNames;
+        } else {
+            return dayNames.slice(1).concat(dayNames[0]);
+        }
+    }
+
     return {
         startsWithSunday,
         focusOnCurrentHour,
@@ -25,5 +33,6 @@ export const useCalendarStore = defineStore('calendar', () => {
         today,
         visibleMonth,
         setVisibleMonth,
+        getDayNamesInOrder,
     }
 })
