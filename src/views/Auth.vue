@@ -24,7 +24,7 @@ const handleLogin = async () => {
     try {
         loading.value = true
         await auth.login(identifier.value, password.value)
-        router.push('/calendar')
+        router.push('/')
     } catch (error) {
         console.error(error)
     } finally {
