@@ -33,6 +33,22 @@ export const useAuthStore = defineStore('auth', {
         this.user = { id: decoded.id, email: decoded.email, name: decoded.name}
         this.persistToken()
     },
+    async signUp(email: string, name: string, password: string) {
+        this.loading = true
+        const res = await fetch(`${API}/v1/users/sign-up`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, name, password }),
+        })
+        this.loading = false
+        if (!res.ok)
+            throw new Error('Failed to sign up')
+
+        await res.json()
+    },
     async logout() {
         this.user = null
         this.token = null
