@@ -42,6 +42,18 @@ watch(
   }
 )
 
+watch(
+  () => eventStore.events,
+  (newEvents) => {
+    if (!hasScrolledToStartingHour) {
+      scrollToHour(getStartingVisibleHour())
+      hasScrolledToStartingHour = true
+    }
+  }
+)
+
+let hasScrolledToStartingHour = false
+
 const hours = Array.from({ length: 24 }, (_, i) => i)
 
 const isWeekend = (day: string) => day === 'SAT' || day === 'SUN'
@@ -79,7 +91,15 @@ const recalculateDayWidth = () => {
   }
 }
 
-const startingVisibleHour = focusOnCurrentHour ? calendarStore.today.getHours() : 8;
+const getStartingVisibleHour = () => {
+  if (focusOnCurrentHour) {
+    return calendarStore.today.getHours()
+  }
+  const today = calendarStore.today
+  const eventsToday = eventStore.events.filter(event => isSameDay(new Date(event.start), today))
+  const closestEvent = eventsToday.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())[0]
+  return closestEvent ? closestEvent.start.getHours() : 8
+}
 
 const generateMonthRange = (center: Date) => {
   const start = startOfMonth(center);
@@ -98,7 +118,6 @@ const scrollToTodayOrFirst = () => {
 
 const scrollToDay = (dayIndex: number) => {
   const el = bodyScrollContainer.value
-  console.log(dayIndex)
   if (el) {
     el.scrollLeft = dayIndex * dayWidth.value
   }
@@ -128,7 +147,6 @@ const getEventStyle = (event: TimeEvent) => {
 }
 
 const getEventTime = (event: TimeEvent) => {
-
   const start = new Date(event.start)
   return start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
 }
@@ -179,17 +197,22 @@ onMounted(() => {
   dateObjects.value = generateMonthRange(calendarStore.visibleMonth)
   requestAnimationFrame(() => {
     scrollToTodayOrFirst()
-    const elB = bodyScrollContainer.value
-    const elH = leftHourColumnRef.value
-    const elR = rightHourColumnRef.value
-    if (elB && elH && elR) {
-      const hourHeight = elH.scrollHeight / 24
-      elB.scrollTop = hourHeight * (startingVisibleHour - 1)
-      elH.scrollTop = hourHeight * (startingVisibleHour - 1)
-      elR.scrollTop = hourHeight * (startingVisibleHour - 1)
-    }
+    scrollToHour(getStartingVisibleHour())
   })
 })
+
+const scrollToHour = (hour: number) => {
+  const startingHour = getStartingVisibleHour()
+  const elB = bodyScrollContainer.value
+  const elH = leftHourColumnRef.value
+  const elR = rightHourColumnRef.value
+  if (elB && elH && elR) {
+    const hourHeight = elH.scrollHeight / 24
+    elB.scrollTop = hourHeight * (startingHour - 1)
+    elH.scrollTop = hourHeight * (startingHour - 1)
+    elR.scrollTop = hourHeight * (startingHour - 1)
+  }
+}
 
 // HEADER -> BODY SCROLL
 watchEffect(() => {

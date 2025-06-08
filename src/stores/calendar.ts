@@ -4,7 +4,7 @@ import { ref } from "vue";
 export const useCalendarStore = defineStore('calendar', () => {
     // settings
     const startsWithSunday = false;
-    const focusOnCurrentHour = true;
+    const focusOnCurrentHour = false;
     const timeNotation = ref<'12h' | '24h'>('12h');
     const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
     const timeZone = ref('UTC');
