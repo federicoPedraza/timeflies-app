@@ -46,8 +46,6 @@ watch(() => calendarStore.visibleMonth, (newMonth) => {
   for (let i = 0; i < fullGridDates.length; i += 7) {
     weeks.value.push(fullGridDates.slice(i, i + 7))
   }
-
-  console.log('sidebar calendar changed', newMonth)
 })
 
 </script>

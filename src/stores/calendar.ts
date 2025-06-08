@@ -15,7 +15,6 @@ export const useCalendarStore = defineStore('calendar', () => {
     // actions
     const setVisibleMonth = (month: Date) => {
         visibleMonth.value = month;
-        console.log('visibleMonth set', visibleMonth.value)
     }
 
     const getDayNamesInOrder = () => {

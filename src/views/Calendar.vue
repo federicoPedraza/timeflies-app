@@ -22,7 +22,6 @@ watch(
     const isPreviousMonth = oldMonth && isBefore(newMonth, oldMonth)
 
     dateObjects.value = generateMonthRange(newMonth)
-    console.log('calendar changed', newMonth)
     nextTick(() => {
       if (!isPreviousMonth) {
         scrollToTodayOrFirst()

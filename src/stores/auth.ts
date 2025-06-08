@@ -40,7 +40,6 @@ export const useAuthStore = defineStore('auth', {
         this.persistToken()
     },
     persistToken() {
-        console.log('persisting token')
         const token = localStorage.getItem('token')
         if (!token) return
 
