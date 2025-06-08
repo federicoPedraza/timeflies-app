@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import Sidebar from './Sidebar.vue'
 import Calendar from './Calendar.vue'
+import { useEventStore } from '@/stores/events'
+import { onMounted } from 'vue'
+const eventStore = useEventStore()
+
+onMounted(() => {
+  eventStore.fetchEvents()
+})
 </script>
 
 <template>

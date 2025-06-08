@@ -5,8 +5,10 @@ import CalendarHour from '../components/calendar/CalendarHour.vue'
 import CalendarCell from '../components/calendar/CalendarCell.vue'
 import { formatDate } from '@/utils/dates/date-formatter'
 import { useCalendarStore } from '@/stores/calendar'
+import { useEventStore, type TimeEvent } from '@/stores/events'
 
 const calendarStore = useCalendarStore()
+const eventStore = useEventStore()
 
 const { startsWithSunday, timeNotation, dayNames, focusOnCurrentHour } = calendarStore
 
@@ -93,6 +95,39 @@ const scrollToDay = (dayIndex: number) => {
   if (el) {
     el.scrollLeft = dayIndex * dayWidth.value
   }
+}
+
+const getEventsForCell = (date: Date, hour: number) => {
+  const filtered = eventStore.events.filter(event => {
+    const eventDate = new Date(event.start)
+    return isSameDay(eventDate, date) && eventDate.getHours() === hour
+  })
+
+  if (filtered.length > 0) {
+    console.log(`Events at ${date.toDateString()} ${hour}:00`, filtered)
+  }
+
+  return filtered
+}
+
+const getEventStyle = (event: TimeEvent) => {
+  const start = new Date(event.start)
+  const end = new Date(event.end)
+  const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60)
+
+  const topOffset = (start.getMinutes() / 60) * 72
+  const height = durationHours * 72
+
+  return {
+    top: `${topOffset}px`,
+    height: `${height}px`
+  }
+}
+
+const getEventTime = (event: TimeEvent) => {
+
+  const start = new Date(event.start)
+  return start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
 }
 
 onMounted(() => {
@@ -203,7 +238,9 @@ watchEffect(() => {
                   isToday(date) ? 'bg-[#EFF6FF]' : isWeekend(getDayName(date)) ? 'bg-[#FAFAFA]' : 'bg-white',
                   index === 0 ? 'border-l-[0px]' : 'border-l-[1px]'
                 ]">
+                <!-- FINE LINE -->
                 <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-[#F7F7F7]"></div>
+                <!-- CURRENT HOUR INDICATOR -->
                 <template v-if="isToday(date) && currentHourFraction !== null && hour === 0">
                   <!-- DOT -->
                   <div class="absolute left-[-4px] right-0 h-[8px] w-[8px] rounded-full  z-30"
@@ -211,6 +248,13 @@ watchEffect(() => {
                   <div class="absolute left-0 right-0 h-[2px]  z-30" :style="{ top: `${72 * currentHourFraction}px` }">
                   </div>
                 </template>
+                <!-- EVENTS -->
+                <div v-for="event in getEventsForCell(date, hour)" :key="event.id"
+                  class="absolute border-l-[3px] border-[#0EA5E9] left-0 right-0 rounded-[4px] bg-[#0EA5E91A] p-1.5 overflow-hidden z-40 flex flex-col gap-2"
+                  :style="getEventStyle(event)">
+                  <span class="text-xs text-[#0369A1]">{{ getEventTime(event) }}</span>
+                  <span class="text-xs font-semibold text-[#0369A1]">{{ event.title }}</span>
+                </div>
               </CalendarCell>
             </div>
           </div>

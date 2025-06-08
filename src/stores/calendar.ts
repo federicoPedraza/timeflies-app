@@ -7,6 +7,7 @@ export const useCalendarStore = defineStore('calendar', () => {
     const focusOnCurrentHour = true;
     const timeNotation = ref<'12h' | '24h'>('12h');
     const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+    const timeZone = ref('UTC');
 
     // current state
     const today = new Date();
@@ -29,6 +30,7 @@ export const useCalendarStore = defineStore('calendar', () => {
         startsWithSunday,
         focusOnCurrentHour,
         timeNotation,
+        timeZone,
         dayNames,
         today,
         visibleMonth,
