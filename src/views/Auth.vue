@@ -18,12 +18,17 @@ const password = ref('')
 const auth = useAuthStore()
 const router = useRouter()
 
+const loading = ref(false)
+
 const handleLogin = async () => {
     try {
+        loading.value = true
         await auth.login(identifier.value, password.value)
         router.push('/calendar')
     } catch (error) {
         console.error(error)
+    } finally {
+        loading.value = false
     }
 }
 </script>

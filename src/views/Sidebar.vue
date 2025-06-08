@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import SidebarHeaderButton from '@/components/sidebar/SidebarHeaderButton.vue';
 import SidebarMonth from '@/components/sidebar/SidebarMonth.vue';
+import { useCalendarStore } from '@/stores/calendar';
+
+const calendarStore = useCalendarStore()
 
 const handleMoreClick = () => {
   console.log('more clicked')
@@ -22,6 +25,6 @@ const handleLogoutClick = () => {
       <SidebarHeaderButton icon="settings-icon" alt="open settings menu" @click="handleSettingsClick" />
       <SidebarHeaderButton icon="logout-icon" alt="logout" @click="handleLogoutClick" />
     </div>
-    <SidebarMonth />
+    <SidebarMonth :month="calendarStore.visibleMonth" />
   </div>
 </template>
