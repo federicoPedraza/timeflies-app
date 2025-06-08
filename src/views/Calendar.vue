@@ -20,19 +20,25 @@ const dateObjects = ref<Date[]>([])
 watch(
   () => calendarStore.visibleMonth,
   (newMonth, oldMonth) => {
-    const isCurrentMonth = isSameMonth(newMonth, calendarStore.today)
     const isPreviousMonth = oldMonth && isBefore(newMonth, oldMonth)
 
     dateObjects.value = generateMonthRange(newMonth)
     nextTick(() => {
       if (!isPreviousMonth) {
         scrollToTodayOrFirst()
-      } else if (isCurrentMonth) {
-        scrollToTodayOrFirst()
       } else {
         scrollToDay(dateObjects.value.length - 1)
       }
     })
+  }
+)
+
+watch(
+  () => calendarStore.lastFocusedDate,
+  (newDate) => {
+    if (newDate) {
+      scrollToDay(dateObjects.value.findIndex(d => isSameDay(d, newDate)))
+    }
   }
 )
 
@@ -92,6 +98,7 @@ const scrollToTodayOrFirst = () => {
 
 const scrollToDay = (dayIndex: number) => {
   const el = bodyScrollContainer.value
+  console.log(dayIndex)
   if (el) {
     el.scrollLeft = dayIndex * dayWidth.value
   }

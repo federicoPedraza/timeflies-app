@@ -13,6 +13,8 @@ export const useCalendarStore = defineStore('calendar', () => {
     const today = new Date();
     const visibleMonth = ref(new Date());
 
+    const lastFocusedDate = ref<Date | null>(null);
+
     // actions
     const setVisibleMonth = (month: Date) => {
         visibleMonth.value = month;
@@ -41,5 +43,6 @@ export const useCalendarStore = defineStore('calendar', () => {
         setVisibleMonth,
         getDayNamesInOrder,
         getDayName,
+        lastFocusedDate,
     }
 })
