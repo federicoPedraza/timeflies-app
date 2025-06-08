@@ -7,6 +7,7 @@ import CalendarEvent from '../components/calendar/CalendarEvent.vue'
 import { formatDate } from '@/utils/dates/date-formatter'
 import { useCalendarStore } from '@/stores/calendar'
 import { useEventStore, type TimeEvent } from '@/stores/events'
+import EventPopup from '../components/modals/EventPopup.vue'
 
 const calendarStore = useCalendarStore()
 const eventStore = useEventStore()
@@ -147,11 +148,6 @@ const getEventStyle = (event: TimeEvent) => {
   }
 }
 
-const getEventTime = (event: TimeEvent) => {
-  const start = new Date(event.start)
-  return start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-}
-
 const hasEventCrossingHalfHour = (date: Date, hour: number) => {
   const cellStart = new Date(date)
   cellStart.setHours(hour, 0, 0, 0)
@@ -200,6 +196,15 @@ onMounted(() => {
     scrollToTodayOrFirst()
     scrollToHour(getStartingVisibleHour())
   })
+  onMounted(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeEventPopup()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  })
 })
 
 const scrollToHour = (hour: number) => {
@@ -213,6 +218,12 @@ const scrollToHour = (hour: number) => {
     elH.scrollTop = hourHeight * (startingHour - 1)
     elR.scrollTop = hourHeight * (startingHour - 1)
   }
+}
+
+const selectedEvent = ref<TimeEvent & { x: number; y: number } | null>(null)
+
+const closeEventPopup = () => {
+  selectedEvent.value = null
 }
 
 // HEADER -> BODY SCROLL
@@ -291,7 +302,7 @@ watchEffect(() => {
       <!-- BODY SCROLL AREA -->
       <div ref="bodyScrollContainer" class="overflow-x-auto overflow-y-auto"
         :style="{ height: 'calc(100vh - 72px)', width: calendarWidth }">
-        <div class="w-max">
+        <div class="w-max relative">
           <div v-for="hour in hours" :key="'row-' + hour" class="flex h-[72px]">
             <div v-for="(date, index) in dateObjects" :key="date.toDateString() + '-' + hour"
               :style="{ width: `${dayWidth}px` }">
@@ -318,10 +329,42 @@ watchEffect(() => {
                 </template>
                 <!-- EVENTS -->
                 <CalendarEvent v-for="event in getEventsForCell(date, hour)" :key="event.id" :event="event"
-                  :style="getEventStyle(event)" />
+                  :style="getEventStyle(event)" @click="(e: MouseEvent) => {
+                    const container = bodyScrollContainer
+                    const targetEl = e.currentTarget as HTMLElement
+
+                    if (container && targetEl) {
+                      const containerRect = container.getBoundingClientRect()
+                      const eventRect = targetEl.getBoundingClientRect()
+
+                      const popupWidth = 240
+                      const rightGap = 8
+                      const leftGap = 68
+
+
+                      const rightX = eventRect.right - containerRect.left + container.scrollLeft + rightGap
+                      const leftX = eventRect.left - containerRect.left + container.scrollLeft - popupWidth - leftGap
+
+                      const fitsOnRight = rightX + popupWidth < container.scrollLeft + container.clientWidth
+
+                      selectedEvent = {
+                        ...event,
+                        x: fitsOnRight ? rightX : Math.max(leftX, 0),
+                        y: eventRect.top - containerRect.top + container.scrollTop
+                      }
+                    }
+                  }" />
               </CalendarCell>
             </div>
           </div>
+          <div v-if="selectedEvent" class="absolute inset-0 z-[99]" @click="closeEventPopup">
+          </div>
+          <EventPopup v-if="selectedEvent" :event="selectedEvent" :close="closeEventPopup" :style="{
+            position: 'absolute',
+            left: `${selectedEvent.x}px`,
+            top: `${selectedEvent.y}px`,
+            zIndex: 100
+          }" />
         </div>
       </div>
     </div>
