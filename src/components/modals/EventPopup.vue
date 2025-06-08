@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import type { TimeEvent } from '@/stores/events'
+import { useEventStore, type TimeEvent } from '@/stores/events'
 import { formatDate } from 'date-fns';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
   event: TimeEvent & { x: number; y: number },
   close: () => void
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:event', event: TimeEvent & { x: number; y: number }): void
 }>()
 
 const getEventDayName = (event: TimeEvent) => {
@@ -88,6 +92,33 @@ const canBeSaved = computed(() => {
   return hasChanges.value && !titleHasError() && !descriptionHasError()
 })
 
+const saveChanges = async () => {
+  const eventStore = useEventStore()
+  const payload: Partial<TimeEvent> = {
+    id: props.event.id,
+    title: changes.value.title,
+    description: changes.value.description,
+    start: props.event.start,
+    end: props.event.end
+  }
+
+  try {
+    await eventStore.modifyEvent(payload)
+    await eventStore.fetchEvents()
+
+    // Find the updated event in the store
+    const updatedEvent = eventStore.events.find(e => e.id === props.event.id)
+    if (updatedEvent) {
+      // Emit the updated event with the same x,y coordinates
+      emit('update:event', { ...updatedEvent, x: props.event.x, y: props.event.y })
+    }
+
+    toggleViewMode()
+  } catch (error) {
+    console.error('Error saving changes:', error)
+  }
+}
+
 </script>
 
 <template>
@@ -102,6 +133,7 @@ const canBeSaved = computed(() => {
           </template>
           <div v-else class="flex flex-row gap-2 justify-start items-center">
           <input type="text"
+            id="title-input"
             placeholder="Add a title..."
             class="border-l-2 pl-2 text-sm font-semibold text-gray-800 underline focus:outline-none focus:border-[#0EA5E9]"
             :class="titleBorderClass"
@@ -111,7 +143,7 @@ const canBeSaved = computed(() => {
           </div>
         </div>
         <div class="flex justify-center items-center p-1">
-          <button class="flex justify-center items-center p-1 rounded-full  bg-gray-100 hover:bg-gray-200 hover:shadow-md" @click="close">
+          <button class="flex justify-center items-center p-1 rounded-full  bg-gray-50 hover:bg-gray-200 hover:shadow-md" @click="close">
             <img src="@/assets/icons/sidebar/close-icon.svg" alt="close" class="w-4 h-4" />
           </button>
         </div>
@@ -121,7 +153,7 @@ const canBeSaved = computed(() => {
           {{ getEventDayName(event) }} {{ formatDate(event.start, 'dd') }} at {{ formatDate(event.start, 'HH:mm a') }} -
           {{ formatDate(event.end, 'HH:mm a') }}
         </span>
-        <div class="mt-2 flex flex-row gap-2 justify-center items-start">
+        <div class="mt-2 flex flex-row gap-2" :class="{ 'items-start': isEditMode, 'items-center': !isEditMode }">
           <div class="flex flex-col justify-center items-center p-1">
             <img src="@/assets/icons/text-icon.svg" alt="description icon" class="w-4 h-4" />
           </div>
@@ -130,7 +162,7 @@ const canBeSaved = computed(() => {
             :class="{ 'text-gray-400': event.description.trim() === '' }">
             {{ event.description || 'No description' }}
           </span>
-          <textarea v-else rows="2"
+          <textarea v-else rows="2" id="description-input"
             placeholder="Add a description..."
             class="text-sm border-l-2  text-gray-600 leading-snug w-[270px] resize-none rounded-sm px-1 py-[2px] focus:outline-none focus:border-[#0EA5E9] h-32 border pt-2"
             :class="descriptionBorderClass"
@@ -141,7 +173,7 @@ const canBeSaved = computed(() => {
       </div>
     </div>
     <div v-if="isEditMode" class="my-2 flex flex-row justify-center items-center gap-4">
-      <button type="button" :disabled="!canBeSaved" class="hover:bg-gray-100 shadow-sm bg-gray-100 disabled:bg-gray-200  disabled:text-gray-400 disabled:cursor-not-allowed hover:shadow-md p-1 rounded-full flex justify-center items-center gap-1">
+      <button type="button" :disabled="!canBeSaved" class="hover:bg-gray-100 shadow-sm bg-gray-100 disabled:bg-gray-200  disabled:text-gray-400 disabled:cursor-not-allowed hover:shadow-md p-1 rounded-full flex justify-center items-center gap-1" @click="saveChanges">
         <div class="flex justify-center items-center p-1">
           <img src="@/assets/icons/save-icon.svg" alt="save description changes" class="w-3 h-3" :class="{ 'save-icon-disabled': !canBeSaved }" />
         </div>

@@ -3,7 +3,6 @@ import SidebarHeaderButton from '@/components/sidebar/SidebarHeaderButton.vue';
 import SidebarMonth from '@/components/sidebar/SidebarMonth.vue';
 import SidebarCalendar from '@/components/sidebar/SidebarCalendar.vue';
 import { useCalendarStore } from '@/stores/calendar';
-import { ref } from 'vue';
 
 const calendarStore = useCalendarStore()
 
@@ -13,6 +12,10 @@ const handleSettingsClick = () => {
 
 const handleLogoutClick = () => {
   console.log('logout clicked')
+}
+
+const handleMoreClick = () => {
+  console.log('more clicked')
 }
 </script>
 

@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useAuthStore } from './auth.ts'
 import { useCalendarStore } from './calendar.ts'
-import { toZonedTime } from 'date-fns-tz'
 
 const API = import.meta.env.VITE_API_BASE_URL
 
@@ -46,8 +45,47 @@ export const useEventStore = defineStore('events', () => {
       const json = await res.json()
       events.value = json.data.map((e: any) => ({
         ...e,
-        start: toZonedTime(e.start, calendarStore.timeZone),
-        end: toZonedTime(e.end, calendarStore.timeZone),
+        start: new Date(e.start),
+        end: new Date(e.end),
+      }))
+    } catch (err: any) {
+      error.value = err.message
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function modifyEvent(event: Partial<TimeEvent>) {
+    const authStore = useAuthStore()
+    const token = authStore.token || localStorage.getItem('token')
+
+    if (!event.id) {
+      error.value = 'Event ID is required'
+      return
+    }
+
+    try {
+      const res = await fetch(`${API}/v1/calendar/modify/${event.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: event.title,
+          description: event.description,
+          start: event.start?.toISOString(),
+          end: event.end?.toISOString()
+        })
+      })
+
+      if (!res.ok) throw new Error('Failed to modify event')
+
+      const json = await res.json()
+      events.value = json.data.map((e: any) => ({
+        ...e,
+        start: new Date(e.start),
+        end: new Date(e.end),
       }))
     } catch (err: any) {
       error.value = err.message
@@ -60,6 +98,7 @@ export const useEventStore = defineStore('events', () => {
     events,
     loading,
     error,
-    fetchEvents
+    fetchEvents,
+    modifyEvent
   }
 })

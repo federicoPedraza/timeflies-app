@@ -364,7 +364,7 @@ watchEffect(() => {
             left: `${selectedEvent.x}px`,
             top: `${selectedEvent.y}px`,
             zIndex: 100
-          }" />
+          }" @update:event="(updatedEvent) => selectedEvent = updatedEvent" />
         </div>
       </div>
     </div>
