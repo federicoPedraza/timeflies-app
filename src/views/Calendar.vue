@@ -328,7 +328,7 @@ watchEffect(() => {
                   </div>
                 </template>
                 <!-- EVENTS -->
-                <CalendarEvent v-for="event in getEventsForCell(date, hour)" :key="event.id" :event="event"
+                <CalendarEvent variant="edit" v-for="event in getEventsForCell(date, hour)" :key="event.id" :event="event"
                   :style="getEventStyle(event)" @click="(e: MouseEvent) => {
                     const container = bodyScrollContainer
                     const targetEl = e.currentTarget as HTMLElement
