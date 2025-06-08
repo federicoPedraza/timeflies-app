@@ -103,10 +103,6 @@ const getEventsForCell = (date: Date, hour: number) => {
     return isSameDay(eventDate, date) && eventDate.getHours() === hour
   })
 
-  if (filtered.length > 0) {
-    console.log(`Events at ${date.toDateString()} ${hour}:00`, filtered)
-  }
-
   return filtered
 }
 
@@ -129,6 +125,43 @@ const getEventTime = (event: TimeEvent) => {
   const start = new Date(event.start)
   return start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
 }
+
+const hasEventCrossingHalfHour = (date: Date, hour: number) => {
+  const cellStart = new Date(date)
+  cellStart.setHours(hour, 0, 0, 0)
+
+  const halfHour = new Date(cellStart)
+  halfHour.setMinutes(30)
+
+  const cellEnd = new Date(cellStart)
+  cellEnd.setHours(hour + 1, 0, 0, 0)
+
+  return eventStore.events.some(event => {
+    const eventStart = new Date(event.start)
+    const eventEnd = new Date(event.end)
+
+    // Event spans across the :30 mark within this hour
+    return isSameDay(eventStart, date) &&
+      eventStart < halfHour &&
+      eventEnd > halfHour
+  })
+}
+
+const hasEventOnFullHour = (date: Date, hour: number) => {
+  const fullHour = new Date(date)
+  fullHour.setHours(hour, 0, 0, 0)
+
+  return eventStore.events.some(event => {
+    const start = new Date(event.start)
+    const end = new Date(event.end)
+
+    return isSameDay(start, date) &&
+      start.getTime() < fullHour.getTime() &&
+      end.getTime() > fullHour.getTime() &&
+      end.getTime() !== fullHour.getTime() // ← filter exact match
+  })
+}
+
 
 onMounted(() => {
   recalculateDayWidth()
@@ -234,12 +267,16 @@ watchEffect(() => {
               <CalendarCell :width="dayWidth"
                 :displayHourIndicator="isToday(date) && currentHourFraction !== null && hour === 0"
                 :hourIndicator="getCurrentHourIndicator()" :style="{ width: `${dayWidth}px` }" :class="[
-                  'h-full border-[#E0E0E0] border-b-[1px]',
+                  'h-full border-b-[1px]',
                   isToday(date) ? 'bg-[#EFF6FF]' : isWeekend(getDayName(date)) ? 'bg-[#FAFAFA]' : 'bg-white',
-                  index === 0 ? 'border-l-[0px]' : 'border-l-[1px]'
+                  index === 0 ? 'border-l-[0px]' : 'border-l-[1px]',
+                  hasEventOnFullHour(date, hour + 1) ? 'border-b-transparent' : 'border-b-[#E0E0E0]',
+                  'border-l-[#E0E0E0]'
                 ]">
                 <!-- FINE LINE -->
-                <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-[#F7F7F7]"></div>
+                <template v-if="!hasEventCrossingHalfHour(date, hour)">
+                  <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-[#F7F7F7]"></div>
+                </template>
                 <!-- CURRENT HOUR INDICATOR -->
                 <template v-if="isToday(date) && currentHourFraction !== null && hour === 0">
                   <!-- DOT -->

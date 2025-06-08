@@ -3,11 +3,15 @@ import SidebarHeaderButton from '@/components/sidebar/SidebarHeaderButton.vue';
 import SidebarMonth from '@/components/sidebar/SidebarMonth.vue';
 import SidebarCalendar from '@/components/sidebar/SidebarCalendar.vue';
 import { useCalendarStore } from '@/stores/calendar';
+import Modal from '@/components/modals/Modal.vue';
+import { ref } from 'vue';
+import AddEventModal from '@/components/modals/AddEventModal.vue';
 
 const calendarStore = useCalendarStore()
+const showModal = ref(false)
 
 const handleMoreClick = () => {
-  console.log('more clicked')
+  showModal.value = true
 }
 
 const handleSettingsClick = () => {
@@ -29,4 +33,8 @@ const handleLogoutClick = () => {
     <SidebarMonth :month="calendarStore.visibleMonth" />
     <SidebarCalendar />
   </div>
+
+  <Modal v-if="showModal" :close="() => showModal = false">
+    <AddEventModal :close="() => showModal = false" />
+  </Modal>
 </template>
