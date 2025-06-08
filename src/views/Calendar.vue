@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watchEffect, watch, nextTick } from 'vue'
-import { startOfWeek, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, isBefore } from 'date-fns'
+import { startOfWeek, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, isBefore, isSameMonth } from 'date-fns'
 import CalendarHour from '../components/calendar/CalendarHour.vue'
 import CalendarCell from '../components/calendar/CalendarCell.vue'
 import { formatDate } from '@/utils/dates/date-formatter'
@@ -18,11 +18,14 @@ const dateObjects = ref<Date[]>([])
 watch(
   () => calendarStore.visibleMonth,
   (newMonth, oldMonth) => {
+    const isCurrentMonth = isSameMonth(newMonth, calendarStore.today)
     const isPreviousMonth = oldMonth && isBefore(newMonth, oldMonth)
 
     dateObjects.value = generateMonthRange(newMonth)
     nextTick(() => {
       if (!isPreviousMonth) {
+        scrollToTodayOrFirst()
+      } else if (isCurrentMonth) {
         scrollToTodayOrFirst()
       } else {
         scrollToDay(dateObjects.value.length - 1)

@@ -15,6 +15,10 @@ const handlePreviousMonth = () => {
 const handleNextMonth = () => {
     calendarStore.setVisibleMonth(addMonths(props.month, 1))
 }
+
+const handleResetView = () => {
+    calendarStore.setVisibleMonth(calendarStore.today)
+}
 </script>
 
 <template>
@@ -25,6 +29,9 @@ const handleNextMonth = () => {
                 <span class="text-[#EF4444] text-3xl">{{ format(props.month, 'yyyy') }}</span>
             </div>
             <div class="flex flex-row gap-2">
+                <button @click="handleResetView" class="p-2 flex items-center justify-center w-8 h-8 rounded-full hover:bg-[#ffffff24] active:bg-[#ffffff32] active:scale-95">
+                    <img src="@/assets/icons/sidebar/reset-icon.svg" alt="reset view" />
+                </button>
                 <button @click="handlePreviousMonth" class="p-2 flex items-center justify-center w-8 h-8 rounded-full hover:bg-[#ffffff24] active:bg-[#ffffff32] active:scale-95">
                     <img src="@/assets/icons/sidebar/back-icon.svg" alt="previous month" />
                 </button>
