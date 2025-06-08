@@ -5,15 +5,10 @@ import { computed } from 'vue';
 
 const props = defineProps<{
     event: TimeEvent,
-    variant: 'default' | 'edit'
+    variant: 'default' | 'edit',
+    overlappingEventsCount: number
+    eventIndex: number
 }>()
-
-const getEventStyle = (event: TimeEvent) => {
-    return {
-        top: `${event.start.getHours()}px`,
-        height: `${event.end.getHours() - event.start.getHours()}px`,
-    }
-}
 
 const getEventTime = (event: TimeEvent) => {
     return format(event.start, 'HH:mm a')
@@ -38,17 +33,22 @@ const isShortEvent = computed(() => {
 </script>
 
 <template>
-    <div class="absolute border-l-[3px] border-[#0EA5E9] left-0 right-0 rounded-[4px] bg-[#0EA5E91A] p-1.5 overflow-hidden z-40 flex gap-2 hover:cursor-pointer hover:bg-[#0EA5E926] transition-all duration-100 hover:shadow-sm" @click="handleClick"
-        :class="[{ 'flex-row': isShortEvent,
-        'flex-col': !isShortEvent,
-        'justify-start': !isShortEvent,
-        'items-center': isShortEvent,
-        'gap-2': isShortEvent,
-        'gap-1': !isShortEvent }]"
-        :style="getEventStyle(event)">
+    <div class="absolute border-l-[3px] border-[#0EA5E9] rounded-[4px] bg-[#0EA5E91A] p-1.5 overflow-hidden z-40 flex gap-2 hover:cursor-pointer hover:bg-[#0EA5E926] transition-all duration-100 hover:shadow-sm"
+        @click="handleClick" :style="{
+            width: `${100 / overlappingEventsCount}%`,
+            left: `${(100 / overlappingEventsCount) * eventIndex}%`
+        }"
+        :class="[{
+            'flex-row': isShortEvent,
+            'flex-col': !isShortEvent,
+            'justify-start': !isShortEvent,
+            'items-center': isShortEvent,
+            'gap-2': isShortEvent,
+            'gap-1': !isShortEvent
+        }]">
         <template v-if="isShortEvent">
-            <span class="text-xs text-[#0369A1]">{{ getEventTimeShort(event) }}</span>
-            <span class="text-xs font-semibold text-[#0369A1]">{{ event.title }}</span>
+            <span v-if="overlappingEventsCount <= 1" class="text-xs text-[#0369A1]">{{ getEventTimeShort(event) }}</span>
+            <span class="text-xs font-semibold text-ellipsis overflow-hidden whitespace-nowrap text-[#0369A1]">{{ event.title }}</span>
         </template>
         <template v-else>
             <span class="text-xs text-[#0369A1]">{{ getEventTime(event) }}</span>

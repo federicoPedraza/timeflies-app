@@ -138,13 +138,13 @@ const getEventStyle = (event: TimeEvent) => {
   const start = new Date(event.start)
   const end = new Date(event.end)
   const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60)
-
   const topOffset = (start.getMinutes() / 60) * 72
   const height = durationHours * 72
 
   return {
     top: `${topOffset}px`,
-    height: `${height}px`
+    height: `${height}px`,
+    position: 'absolute'
   }
 }
 
@@ -184,6 +184,37 @@ const hasEventOnFullHour = (date: Date, hour: number) => {
   })
 }
 
+function getOverlappingEvents(events: TimeEvent[], eventPerspective: TimeEvent) {
+  // Sort events by start time
+  const sorted = [...events].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+  const columns: TimeEvent[][] = [];
+
+  sorted.forEach(event => {
+    let placed = false;
+    for (let col = 0; col < columns.length; col++) {
+      // Check if this event overlaps with the last event in this column
+      const last = columns[col][columns[col].length - 1];
+      if (new Date(event.start) >= new Date(last.end)) {
+        columns[col].push(event);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      columns.push([event]);
+    }
+  });
+
+  // Map event id to column index
+  const eventToColumn = new Map();
+  columns.forEach((col, colIdx) => {
+    col.forEach(event => eventToColumn.set(event.id, colIdx));
+  });
+
+  const eventPerspectiveColumn = eventToColumn.get(eventPerspective.id)
+
+  return { eventToColumn, numColumns: columns.length, eventPerspectiveColumn };
+}
 
 onMounted(() => {
   recalculateDayWidth()
@@ -328,8 +359,15 @@ watchEffect(() => {
                   </div>
                 </template>
                 <!-- EVENTS -->
-                <CalendarEvent variant="edit" v-for="event in getEventsForCell(date, hour)" :key="event.id" :event="event"
-                  :style="getEventStyle(event)" @click="(e: MouseEvent) => {
+                <CalendarEvent
+                  variant="edit"
+                  v-for="(event) in getEventsForCell(date, hour)"
+                  :key="event.id"
+                  :event="event"
+                  :style="getEventStyle(event)"
+                  :overlappingEventsCount="getOverlappingEvents(eventStore.events, event).numColumns"
+                  :eventIndex="getOverlappingEvents(eventStore.events, event).eventPerspectiveColumn"
+                  @click="(e: MouseEvent) => {
                     const container = bodyScrollContainer
                     const targetEl = e.currentTarget as HTMLElement
 
@@ -340,7 +378,6 @@ watchEffect(() => {
                       const popupWidth = 240
                       const rightGap = 8
                       const leftGap = 100
-
 
                       const rightX = eventRect.right - containerRect.left + container.scrollLeft + rightGap
                       const leftX = eventRect.left - containerRect.left + container.scrollLeft - popupWidth - leftGap
