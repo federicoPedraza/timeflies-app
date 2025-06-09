@@ -315,6 +315,10 @@ const closeEventPopup = () => {
   selectedEvent.value = null
 }
 
+const onDeleteEvent = () => {
+  selectedEvent.value = null
+}
+
 // HEADER -> BODY SCROLL
 watchEffect(() => {
   if (headerScrollContainer.value && bodyScrollContainer.value) {
@@ -478,7 +482,7 @@ watchEffect(() => {
           <div v-if="selectedEvent" class="absolute inset-0 z-[99]" @click="closeEventPopup">
           </div>
           <EventPopup v-if="selectedEvent" :event="selectedEvent"
-            :isGhostEvent="selectedEvent.id === calendarStore.ghostEvent?.id" :close="closeEventPopup" :style="{
+              :isGhostEvent="selectedEvent.id === calendarStore.ghostEvent?.id" :close="closeEventPopup" @delete="onDeleteEvent" :style="{
               position: 'absolute',
               left: `${selectedEvent.x}px`,
               top: `${selectedEvent.y}px`,

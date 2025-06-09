@@ -8,11 +8,15 @@ const props = defineProps<{
   event: TimeEvent & { x: number; y: number },
   isGhostEvent: boolean,
   close: () => void
+  onDelete: () => void
 }>()
 
 const emit = defineEmits<{
   (e: 'update:event', event: TimeEvent & { x: number; y: number }): void
 }>()
+
+const eventStore = useEventStore()
+const calendarStore = useCalendarStore()
 
 const getEventDayName = (date: Date) => {
   return formatDate(date, 'EEEE')
@@ -291,6 +295,17 @@ const canBeSaved = computed(() => {
   return hasChanges.value && !titleHasError() && !descriptionHasError()
 })
 
+const deleteEvent = async () => {
+  if (props.isGhostEvent) {
+    calendarStore.destroyGhostEvent()
+    props.onDelete()
+    return
+  }
+
+  await eventStore.deleteEvent(props.event.id)
+  props.onDelete()
+}
+
 const createEvent = async () => {
   const eventStore = useEventStore()
   await eventStore.createEvent({
@@ -495,7 +510,7 @@ const saveChanges = async () => {
           <span class="text-sm text-gray-600">Are you sure you'd like to {{ isGhostEvent ? 'discard' : 'delete' }} this
             event?</span>
           <div class="flex flex-row justify-center items-center gap-8">
-            <button type="button" class="text-red-400 text-sm rounded-md hover:text-red-500 hover:text-shadow">{{
+            <button type="button" @click="deleteEvent" class="text-red-400 text-sm rounded-md hover:text-red-500 hover:text-shadow">{{
               isGhostEvent
                 ? 'Discard' : 'Delete' }}</button>
             <button type="button" @click="toggleDeleteMode"
@@ -516,9 +531,5 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield;
 }
 </style>

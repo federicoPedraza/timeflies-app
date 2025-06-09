@@ -129,12 +129,35 @@ export const useEventStore = defineStore('events', () => {
     }
   }
 
+  async function deleteEvent(eventId: string) {
+    const authStore = useAuthStore()
+    const token = authStore.token || localStorage.getItem('token')
+
+    try {
+      const res = await fetch(`${API}/v1/calendar/delete/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!res.ok) throw new Error('Failed to delete event')
+
+      await fetchEvents()
+    } catch (err: any) {
+      error.value = err.message
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     events,
     loading,
     error,
     fetchEvents,
     modifyEvent,
-    createEvent
+    createEvent,
+    deleteEvent
   }
 })
