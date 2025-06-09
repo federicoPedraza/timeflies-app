@@ -36,25 +36,28 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
   const originalStart = new Date(event.start)
   const originalEnd = new Date(event.end)
 
-  calendarStore.ghostEvent = {
-    id: event.id,
-    title: event.title,
-    description: event.description,
-    start: new Date(originalStart),
-    end: new Date(originalEnd),
-    x: 0,
-    y: 0
-  }
-
   let animationFrameId: number | null = null
-  const tempGhost = { ...calendarStore.ghostEvent! }
+  let tempGhost: TimeEvent | null = null
 
   const onMouseMove = (moveEvent: MouseEvent) => {
     const deltaX = Math.abs(moveEvent.clientX - startX)
     const deltaY = Math.abs(moveEvent.clientY - startY)
+
     if (!hasMoved && (deltaX > dragThreshold || deltaY > dragThreshold)) {
       hasMoved = true
+      const ghostEvent: TimeEvent & { x: number; y: number } = {
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        start: new Date(originalStart),
+        end: new Date(originalEnd),
+        x: 0,
+        y: 0
+      }
+      calendarStore.ghostEvent = ghostEvent
+      tempGhost = { ...ghostEvent }
     }
+
     if (!hasMoved) return
 
     const dy = moveEvent.clientY - startY
@@ -63,31 +66,23 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
     if (resizeTarget === 'start') {
       const newStart = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
       if (newStart >= originalEnd) return
-      tempGhost.start = newStart
+      tempGhost!.start = newStart
     } else if (resizeTarget === 'end') {
       const newEnd = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
       if (newEnd <= originalStart) return
-      tempGhost.end = newEnd
+      tempGhost!.end = newEnd
     } else {
-      const deltaX = Math.abs(moveEvent.clientX - startX)
-      const deltaY = Math.abs(moveEvent.clientY - startY)
-      if (!hasMoved && (deltaX > dragThreshold || deltaY > dragThreshold)) {
-        hasMoved = true
-      }
-      if (!hasMoved) return
-
       const newStart = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
       const newEnd = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
       if (newStart < newEnd) {
-        tempGhost.start = newStart
-        tempGhost.end = newEnd
+        tempGhost!.start = newStart
+        tempGhost!.end = newEnd
       }
     }
 
-
     if (animationFrameId == null) {
       animationFrameId = requestAnimationFrame(() => {
-        calendarStore.ghostEvent = { ...tempGhost }
+        calendarStore.ghostEvent = { ...tempGhost!, x: 0, y: 0 }
         animationFrameId = null
       })
     }
@@ -98,20 +93,18 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
     window.removeEventListener('mouseup', onMouseUp)
     if (animationFrameId) cancelAnimationFrame(animationFrameId)
 
-    if (resizeTarget === 'start') {
+    if (!hasMoved) {
+      emit('click', e)
+    } else if (resizeTarget === 'start') {
       const delta = (calendarStore.ghostEvent!.start.getTime() - originalStart.getTime()) / 1000 / 60
       emit('resize:start', delta)
     } else if (resizeTarget === 'end') {
       const delta = (calendarStore.ghostEvent!.end.getTime() - originalEnd.getTime()) / 1000 / 60
       emit('resize:end', delta)
     } else {
-      if (!hasMoved) {
-        emit('click', e)
-      } else {
-        const delta = (calendarStore.ghostEvent!.start.getTime() - originalStart.getTime()) / 1000 / 60
-        emit('resize:start', delta)
-        emit('resize:end', delta)
-      }
+      const delta = (calendarStore.ghostEvent!.start.getTime() - originalStart.getTime()) / 1000 / 60
+      emit('resize:start', delta)
+      emit('resize:end', delta)
     }
 
     calendarStore.destroyGhostEvent()
