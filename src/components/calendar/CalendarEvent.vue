@@ -26,10 +26,13 @@ const emit = defineEmits<{
   (e: 'resize:start', deltaMinutes: number): void
   (e: 'resize:end', deltaMinutes: number): void
 }>()
-
 const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e: MouseEvent) => {
   e.stopPropagation()
   const startY = e.clientY
+  const startX = e.clientX
+  const dragThreshold = 4
+  let hasMoved = false
+
   const originalStart = new Date(event.start)
   const originalEnd = new Date(event.end)
 
@@ -47,25 +50,40 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
   const tempGhost = { ...calendarStore.ghostEvent! }
 
   const onMouseMove = (moveEvent: MouseEvent) => {
-    const deltaY = moveEvent.clientY - startY
-    const deltaMinutes = Math.round((deltaY / 72) * 60)
+    const deltaX = Math.abs(moveEvent.clientX - startX)
+    const deltaY = Math.abs(moveEvent.clientY - startY)
+    if (!hasMoved && (deltaX > dragThreshold || deltaY > dragThreshold)) {
+      hasMoved = true
+    }
+    if (!hasMoved) return
+
+    const dy = moveEvent.clientY - startY
+    const deltaMinutes = Math.round((dy / 72) * 60)
 
     if (resizeTarget === 'start') {
       const newStart = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
-      if (newStart.getTime() >= originalEnd.getTime()) return
+      if (newStart >= originalEnd) return
       tempGhost.start = newStart
     } else if (resizeTarget === 'end') {
       const newEnd = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
-      if (newEnd.getTime() <= originalStart.getTime()) return
+      if (newEnd <= originalStart) return
       tempGhost.end = newEnd
     } else {
+      const deltaX = Math.abs(moveEvent.clientX - startX)
+      const deltaY = Math.abs(moveEvent.clientY - startY)
+      if (!hasMoved && (deltaX > dragThreshold || deltaY > dragThreshold)) {
+        hasMoved = true
+      }
+      if (!hasMoved) return
+
       const newStart = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
       const newEnd = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
-      if (newStart.getTime() < newEnd.getTime()) {
+      if (newStart < newEnd) {
         tempGhost.start = newStart
         tempGhost.end = newEnd
       }
     }
+
 
     if (animationFrameId == null) {
       animationFrameId = requestAnimationFrame(() => {
@@ -75,11 +93,10 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
     }
   }
 
-
   const onMouseUp = () => {
-    if (animationFrameId) cancelAnimationFrame(animationFrameId)
     window.removeEventListener('mousemove', onMouseMove)
     window.removeEventListener('mouseup', onMouseUp)
+    if (animationFrameId) cancelAnimationFrame(animationFrameId)
 
     if (resizeTarget === 'start') {
       const delta = (calendarStore.ghostEvent!.start.getTime() - originalStart.getTime()) / 1000 / 60
@@ -87,6 +104,14 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
     } else if (resizeTarget === 'end') {
       const delta = (calendarStore.ghostEvent!.end.getTime() - originalEnd.getTime()) / 1000 / 60
       emit('resize:end', delta)
+    } else {
+      if (!hasMoved) {
+        emit('click', e)
+      } else {
+        const delta = (calendarStore.ghostEvent!.start.getTime() - originalStart.getTime()) / 1000 / 60
+        emit('resize:start', delta)
+        emit('resize:end', delta)
+      }
     }
 
     calendarStore.destroyGhostEvent()
@@ -95,6 +120,7 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
   window.addEventListener('mousemove', onMouseMove)
   window.addEventListener('mouseup', onMouseUp)
 }
+
 
 const handleClick = (e: MouseEvent) => {
   emit('click', e)
@@ -113,7 +139,7 @@ const isTooOverlapped = computed(() => {
 <template>
   <div
     class="absolute border-l-[3px] rounded-[4px] p-1.5 overflow-hidden flex gap-0 hover:cursor-pointer transition-all duration-100 hover:shadow-xl z-20"
-    @click="handleClick" :style="{
+    @click="handleClick" @mousedown.left="(e) => startGhostDrag(event)(e)" :style="{
       width: `${100 / overlappingEventsCount}%`,
       left: `${(100 / overlappingEventsCount) * eventIndex}%`
     }" :class="{
