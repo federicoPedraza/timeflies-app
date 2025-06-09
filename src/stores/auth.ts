@@ -47,7 +47,26 @@ export const useAuthStore = defineStore('auth', {
         if (!res.ok)
             throw new Error('Failed to sign up')
 
-        await res.json()
+        const response = await res.json()
+        const token = response.data.token
+        this.token = token
+        localStorage.setItem('token', token)
+
+        const decoded = jwtDecode<{ id: string, email: string, name: string }>(token);
+        this.user = { id: decoded.id, email: decoded.email, name: decoded.name}
+        this.persistToken()
+    },
+    async checkEmail(email: string) {
+        const res = await fetch(`${API}/v1/users/check-email?email=${email}`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        const response = await res.json()
+
+        return response.data.available
     },
     async logout() {
         this.user = null

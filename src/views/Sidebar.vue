@@ -3,15 +3,21 @@ import SidebarHeaderButton from '@/components/sidebar/SidebarHeaderButton.vue';
 import SidebarMonth from '@/components/sidebar/SidebarMonth.vue';
 import SidebarCalendar from '@/components/sidebar/SidebarCalendar.vue';
 import { useCalendarStore } from '@/stores/calendar';
+import { useAuthStore } from '@/stores/auth';
+import { useRouter } from 'vue-router';
 
+const router = useRouter()
 const calendarStore = useCalendarStore()
+const authStore = useAuthStore()
 
 const handleSettingsClick = () => {
   console.log('settings clicked')
 }
 
-const handleLogoutClick = () => {
-  console.log('logout clicked')
+const handleLogoutClick = async () => {
+  await authStore.logout()
+  router.push('/auth')
+  window.location.reload()
 }
 
 const handleMoreClick = () => {
