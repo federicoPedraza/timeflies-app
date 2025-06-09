@@ -319,6 +319,16 @@ const onDeleteEvent = () => {
   selectedEvent.value = null
 }
 
+const onResizeEvent = async (event: TimeEvent, minutes: number, isStart: boolean) => {
+  if (isStart) {
+    event.start = new Date(event.start.getTime() + minutes * 60 * 1000)
+    await eventStore.modifyEvent(event)
+  } else {
+    event.end = new Date(event.end.getTime() + minutes * 60 * 1000)
+    await eventStore.modifyEvent(event)
+  }
+}
+
 // HEADER -> BODY SCROLL
 watchEffect(() => {
   if (headerScrollContainer.value && bodyScrollContainer.value) {
@@ -422,9 +432,11 @@ watchEffect(() => {
                 </template>
                 <!-- EVENTS -->
                 <CalendarEvent variant="default" v-for="(event) in getEventsForCell(date, hour)" :key="event.id"
-                  :event="event" :style="getEventStyle(event)"
+                  :event="event" :style="calendarStore.ghostEvent?.id === event.id ? { display: 'none' } : getEventStyle(event)"
+
                   :overlappingEventsCount="overlappingMeta.get(date.toDateString())?.get(event.id)?.count ?? 1"
-                  :eventIndex="overlappingMeta.get(date.toDateString())?.get(event.id)?.index ?? 0" @click="(e: MouseEvent) => {
+                  :eventIndex="overlappingMeta.get(date.toDateString())?.get(event.id)?.index ?? 0"
+                  @click="(e: MouseEvent) => {
                     const container = bodyScrollContainer
                     const targetEl = e.currentTarget as HTMLElement
 
@@ -447,6 +459,10 @@ watchEffect(() => {
                         y: eventRect.top - containerRect.top + container.scrollTop
                       }
                     }
+                  }" @resize:start="(minutes) => {
+                    onResizeEvent(event, minutes, true)
+                  }" @resize:end="(minutes) => {
+                    onResizeEvent(event, minutes, false)
                   }" />
                 <!-- GHOST EVENT -->
                 <CalendarEvent
