@@ -51,12 +51,20 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
     const deltaMinutes = Math.round((deltaY / 72) * 60)
 
     if (resizeTarget === 'start') {
-      tempGhost.start = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
+      const newStart = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
+      if (newStart.getTime() >= originalEnd.getTime()) return
+      tempGhost.start = newStart
     } else if (resizeTarget === 'end') {
-      tempGhost.end = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
+      const newEnd = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
+      if (newEnd.getTime() <= originalStart.getTime()) return
+      tempGhost.end = newEnd
     } else {
-      tempGhost.start = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
-      tempGhost.end = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
+      const newStart = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
+      const newEnd = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
+      if (newStart.getTime() < newEnd.getTime()) {
+        tempGhost.start = newStart
+        tempGhost.end = newEnd
+      }
     }
 
     if (animationFrameId == null) {
@@ -66,6 +74,7 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
       })
     }
   }
+
 
   const onMouseUp = () => {
     if (animationFrameId) cancelAnimationFrame(animationFrameId)
