@@ -17,6 +17,10 @@ const getEventTime = (event: TimeEvent) => {
   return format(event.start, 'HH:mm a')
 }
 
+const getEventTimeEnd = (event: TimeEvent) => {
+  return format(event.end, 'HH:mm a')
+}
+
 const getEventTimeShort = (event: TimeEvent) => {
   return format(event.start, 'HH:mm')
 }
@@ -61,22 +65,51 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
     if (!hasMoved) return
 
     const dy = moveEvent.clientY - startY
-    const deltaMinutes = Math.round((dy / 72) * 60)
+    let deltaMinutes = Math.round((dy / 72) * 60)
 
-    if (resizeTarget === 'start') {
-      const newStart = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
-      if (newStart >= originalEnd) return
-      tempGhost!.start = newStart
-    } else if (resizeTarget === 'end') {
-      const newEnd = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
-      if (newEnd <= originalStart) return
-      tempGhost!.end = newEnd
+    if (moveEvent.shiftKey) {
+      const snapToNearest15 = (date: Date) => {
+        const minutes = date.getMinutes()
+        const hours = date.getHours()
+        const snappedMinutes = Math.round(minutes / 15) * 15
+        date.setMinutes(snappedMinutes)
+        date.setSeconds(0)
+        date.setMilliseconds(0)
+        return date
+      }
+
+      if (resizeTarget === 'start') {
+        const newStart = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
+        if (newStart >= originalEnd) return
+        tempGhost!.start = snapToNearest15(newStart)
+      } else if (resizeTarget === 'end') {
+        const newEnd = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
+        if (newEnd <= originalStart) return
+        tempGhost!.end = snapToNearest15(newEnd)
+      } else {
+        const newStart = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
+        const newEnd = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
+        if (newStart < newEnd) {
+          tempGhost!.start = snapToNearest15(newStart)
+          tempGhost!.end = snapToNearest15(newEnd)
+        }
+      }
     } else {
-      const newStart = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
-      const newEnd = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
-      if (newStart < newEnd) {
+      if (resizeTarget === 'start') {
+        const newStart = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
+        if (newStart >= originalEnd) return
         tempGhost!.start = newStart
+      } else if (resizeTarget === 'end') {
+        const newEnd = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
+        if (newEnd <= originalStart) return
         tempGhost!.end = newEnd
+      } else {
+        const newStart = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
+        const newEnd = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
+        if (newStart < newEnd) {
+          tempGhost!.start = newStart
+          tempGhost!.end = newEnd
+        }
       }
     }
 
@@ -158,6 +191,9 @@ const isTooOverlapped = computed(() => {
     <template v-else>
       <span v-if="!isTooOverlapped" class="text-xs text-[#0369A1]">{{ getEventTime(event) }}</span>
       <span class="text-xs font-semibold text-[#0369A1]">{{ event.title }}</span>
+      <div class="flex h-full w-full justify-start items-end">
+        <span v-if="variant === 'edit'" class="text-xs text-[#0369A1]">{{ getEventTimeEnd(event) }}</span>
+      </div>
     </template>
   </div>
 </template>
