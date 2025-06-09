@@ -34,11 +34,10 @@ const isShortEvent = computed(() => {
 const isTooOverlapped = computed(() => {
     return props.overlappingEventsCount >= 3
 })
-
 </script>
 
 <template>
-    <div class="absolute border-l-[3px] rounded-[4px] p-1.5 overflow-hidden z-40 flex gap-2 hover:cursor-pointer transition-all duration-100 hover:shadow-sm"
+    <div class="absolute border-l-[3px] rounded-[4px] p-1.5 overflow-hidden z-40 flex gap-0 hover:cursor-pointer transition-all duration-100 hover:shadow-sm z-10"
         @click="handleClick" :style="{
             width: `${100 / overlappingEventsCount}%`,
             left: `${(100 / overlappingEventsCount) * eventIndex}%`

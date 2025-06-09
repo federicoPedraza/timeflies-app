@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watchEffect, watch, nextTick } from 'vue'
+import { ref, onMounted, watchEffect, watch, nextTick, computed } from 'vue'
 import { startOfWeek, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, isBefore, isSameMonth } from 'date-fns'
 import CalendarHour from '../components/calendar/CalendarHour.vue'
 import CalendarCell from '../components/calendar/CalendarCell.vue'
@@ -121,14 +121,11 @@ const scrollToDay = (dayIndex: number) => {
     el.scrollLeft = dayIndex * dayWidth.value
   }
 }
-
 const getEventsForCell = (date: Date, hour: number) => {
-  const filtered = eventStore.events.filter(event => {
-    const eventDate = new Date(event.start)
-    return isSameDay(eventDate, date) && eventDate.getHours() === hour
+  return eventStore.events.filter(event => {
+    const start = new Date(event.start)
+    return isSameDay(start, date) && start.getHours() === hour
   })
-
-  return filtered
 }
 
 const getEventStyle = (event: TimeEvent) => {
@@ -180,16 +177,13 @@ const hasEventOnFullHour = (date: Date, hour: number) => {
       end.getTime() !== fullHour.getTime() // ← filter exact match
   })
 }
-
-function getOverlappingEvents(events: TimeEvent[], eventPerspective: TimeEvent) {
-  // Sort events by start time
+function getOverlappingEvents(events: TimeEvent[]) {
   const sorted = [...events].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
   const columns: TimeEvent[][] = [];
 
-  sorted.forEach(event => {
+  for (const event of sorted) {
     let placed = false;
     for (let col = 0; col < columns.length; col++) {
-      // Check if this event overlaps with the last event in this column
       const last = columns[col][columns[col].length - 1];
       if (new Date(event.start) >= new Date(last.end)) {
         columns[col].push(event);
@@ -197,21 +191,53 @@ function getOverlappingEvents(events: TimeEvent[], eventPerspective: TimeEvent) 
         break;
       }
     }
-    if (!placed) {
-      columns.push([event]);
-    }
-  });
+    if (!placed) columns.push([event]);
+  }
 
-  // Map event id to column index
-  const eventToColumn = new Map();
+  const eventToColumn = new Map<string, number>();
   columns.forEach((col, colIdx) => {
     col.forEach(event => eventToColumn.set(event.id, colIdx));
   });
 
-  const eventPerspectiveColumn = eventToColumn.get(eventPerspective.id)
-
-  return { eventToColumn, numColumns: columns.length, eventPerspectiveColumn };
+  return {
+    eventToColumn,
+    numColumns: columns.length
+  };
 }
+
+const overlappingMeta = computed(() => {
+  const meta = new Map<string, Map<string, { count: number; index: number }>>();
+
+  for (const date of dateObjects.value) {
+    const eventsOnDay = eventStore.events.filter(e => isSameDay(new Date(e.start), date));
+    const map = new Map<string, { count: number; index: number }>();
+
+    for (const date of dateObjects.value) {
+  const dayKey = date.toDateString();
+  const eventsOnDay = eventStore.events.filter(e => isSameDay(new Date(e.start), date));
+  const map = new Map<string, { count: number; index: number }>();
+
+  const { eventToColumn, numColumns } = getOverlappingEvents(eventsOnDay);
+
+  for (const event of eventsOnDay) {
+    const index = eventToColumn.get(event.id) ?? 0;
+    map.set(event.id, {
+      count: numColumns,
+      index
+    });
+  }
+
+  meta.set(dayKey, map);
+}
+
+
+    meta.set(date.toDateString(), map);
+  }
+
+  return meta;
+});
+
+
 
 onMounted(() => {
   recalculateDayWidth()
@@ -362,8 +388,10 @@ watchEffect(() => {
                   :key="event.id"
                   :event="event"
                   :style="getEventStyle(event)"
-                  :overlappingEventsCount="getOverlappingEvents(eventStore.events, event).numColumns"
-                  :eventIndex="getOverlappingEvents(eventStore.events, event).eventPerspectiveColumn"
+                  :overlappingEventsCount="overlappingMeta.get(date.toDateString())?.get(event.id)?.count ?? 1"
+:eventIndex="overlappingMeta.get(date.toDateString())?.get(event.id)?.index ?? 0"
+
+
                   @click="(e: MouseEvent) => {
                     const container = bodyScrollContainer
                     const targetEl = e.currentTarget as HTMLElement
