@@ -2,16 +2,19 @@
 import SidebarHeaderButton from '@/components/sidebar/SidebarHeaderButton.vue';
 import SidebarMonth from '@/components/sidebar/SidebarMonth.vue';
 import SidebarCalendar from '@/components/sidebar/SidebarCalendar.vue';
+import ConfigModal from '@/components/modals/ConfigModal.vue';
 import { useCalendarStore } from '@/stores/calendar';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
+import { ref } from 'vue';
 
 const router = useRouter()
 const calendarStore = useCalendarStore()
 const authStore = useAuthStore()
+const configModal = ref(false)
 
 const handleSettingsClick = () => {
-  console.log('settings clicked')
+  configModal.value = true
 }
 
 const handleLogoutClick = async () => {
@@ -35,4 +38,5 @@ const handleMoreClick = () => {
     <SidebarMonth :month="calendarStore.visibleMonth" />
     <SidebarCalendar />
   </div>
+  <ConfigModal v-if="configModal" @close="configModal = false" />
 </template>

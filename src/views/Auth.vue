@@ -329,7 +329,6 @@ onMounted(() => {
                                     </span>
                                 </div>
                             </div>
-
                         </div>
                         <div v-else-if="signupPhase === 1" class="w-full flex flex-col items-center gap-2">
                             <div class="w-full">

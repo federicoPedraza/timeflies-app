@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { jwtDecode } from 'jwt-decode'
+import router from '@/router'
 
 const API = import.meta.env.VITE_API_BASE_URL
 
@@ -36,7 +37,6 @@ export const useAuthStore = defineStore('auth', {
 
         const decoded = jwtDecode<{ id: string, email: string, name: string }>(token);
         this.user = { id: decoded.id, email: decoded.email, name: decoded.name}
-        console.log(this.user)
         this.persistToken()
     },
     async signUp(email: string, name: string, password: string) {
@@ -80,11 +80,41 @@ export const useAuthStore = defineStore('auth', {
         localStorage.removeItem('token')
         this.persistToken()
     },
+    async deleteAccount() {
+        if (!this.token)
+            throw new Error('No token found')
+
+        const res = await fetch(`${API}/v1/users/me`, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.token}`,
+            },
+        })
+        if (!res.ok)
+            throw new Error('Failed to delete account')
+        this.logout()
+        router.push('/auth?signup=true')
+    },
     persistToken() {
         const token = localStorage.getItem('token')
         if (!token) return
 
         this.token = token
+
+        try {
+            const decoded = jwtDecode<{ id: string, email: string, name: string }>(token)
+            this.user = {
+                id: decoded.id,
+                email: decoded.email,
+                name: decoded.name,
+            }
+        } catch {
+            this.user = null
+            this.token = null
+            localStorage.removeItem('token')
+        }
     }
   },
 })
