@@ -15,9 +15,9 @@ const handleSettingsClick = () => {
 }
 
 const handleLogoutClick = async () => {
-  await authStore.logout()
-  router.push('/auth')
-  window.location.reload()
+  await authStore.logout().then(() => {
+    router.push('/auth?signup=false')
+  })
 }
 
 const handleMoreClick = () => {

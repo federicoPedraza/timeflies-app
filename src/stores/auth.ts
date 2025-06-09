@@ -21,16 +21,22 @@ export const useAuthStore = defineStore('auth', {
             body: JSON.stringify({ identifier, password }),
         })
         this.loading = false
-        if (!res.ok)
-            throw new Error('Failed to login')
 
         const response = await res.json()
+
+        if (!res.ok) {
+            if (response.message === 'Invalid credentials')
+                throw new Error('Invalid email or password')
+            throw new Error('An error occurred, please try again later')
+        }
+
         const token = response.data.token
         this.token = token
         localStorage.setItem('token', token)
 
         const decoded = jwtDecode<{ id: string, email: string, name: string }>(token);
         this.user = { id: decoded.id, email: decoded.email, name: decoded.name}
+        console.log(this.user)
         this.persistToken()
     },
     async signUp(email: string, name: string, password: string) {

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const email = ref('')
 const password = ref('')
@@ -23,12 +23,14 @@ const errors = ref({
     password: '',
     confirmPassword: '',
     name: '',
+    login: '',
 })
 
 const name = ref('')
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const loading = ref(false)
 
@@ -67,14 +69,10 @@ const handleLogin = async () => {
         await auth.login(email.value, password.value)
         router.push('/')
     } catch (error) {
-        console.error(error)
+        errors.value.login = error instanceof Error ? error.message : 'An error occurred, please try again later'
     } finally {
         loading.value = false
     }
-}
-
-const validatePassword = () => {
-    return password.value === confirmPassword.value
 }
 
 const validateEmail = () => {
@@ -169,6 +167,10 @@ const nextPhaseButtonLabel = () => {
     return 'Next'
 }
 
+const canLogin = () => {
+    return validateEmail() && validatePasswordStrength()
+}
+
 watch([email, password, confirmPassword, name], () => {
     if (signupPhase.value === 0) {
         validateEmail()
@@ -180,9 +182,21 @@ watch([email, password, confirmPassword, name], () => {
     }
 })
 
+watch(signUpMode, () => {
+    if (signUpMode.value) {
+        runEmailValidation()
+    }
+})
+
 onMounted(() => {
     if (auth.token) {
         router.push('/')
+        return
+    }
+
+    if (route.query.signup === 'false') {
+        signUpMode.value = false
+        signupPhase.value = 0
     }
 })
 </script>
@@ -208,7 +222,7 @@ onMounted(() => {
                     <form class="flex flex-col items-center justify-center gap-4 w-3/4">
                         <div v-if="signupPhase === 0" class="w-full flex flex-col items-center gap-6">
                             <div class="flex flex-col items-center justify-center gap-2">
-                                <h1 class="text-2xl  font-semibold">Welcome to Timeflies</h1>
+                                <h1 class="text-2xl font-semibold">Welcome to Timeflies</h1>
                                 <h2 class="text-sm text-gray-500">Create an account to get started</h2>
                             </div>
                             <div class="flex flex-col w-full gap-2">
@@ -366,10 +380,45 @@ onMounted(() => {
                         </span>
                     </button>
                 </div>
-                <div v-else class="flex flex-col items-center justify-center pt-16">
-                    <h1 class="text-2xl  font-semibold">Welcome back</h1>
-                    <button class="bg-blue-500 text-white px-4 py-2 rounded-md" @click="signUpMode = !signUpMode">
-                        Create an account
+                <div v-else class="flex flex-col items-center justify-center pt-16 gap-4">
+                    <div class="flex flex-col items-center justify-center gap-2 w-3/4">
+                        <h1 class="text-2xl font-semibold">Welcome</h1>
+                        <h2 class="text-sm text-gray-500">Login to your account</h2>
+                    </div>
+                    <div class="flex flex-col items-center justify-center gap-4 w-full">
+                        <div v-if="errors.login.length > 0">
+                            <span class="text-sm text-red-500">{{ errors.login }}</span>
+                        </div>
+                        <div class="flex flex-col items-center justify-center gap-4 w-3/4">
+                            <div class="flex flex-col w-full relative">
+                                <span class="text-sm text-gray-500">Email</span>
+                                <div class="flex flex-row items-center justify-start gap-2 w-full relative">
+                                    <input type="email" placeholder=""
+                                        class="border rounded w-full py-2 px-3 text-sm focus:outline-[#0EA5E9] focus:outline"
+                                        v-model="email" />
+                                </div>
+                            </div>
+                            <div class="flex flex-col w-full">
+                                <span class="text-sm text-gray-500">Password</span>
+                                <div class="flex flex-row items-center justify-start gap-2 w-full relative">
+                                    <input type="password" placeholder=""
+                                        class="border rounded w-full py-2 px-3 text-sm focus:outline-[#0EA5E9] focus:outline"
+                                        v-model="password" />
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="flex flex-row items-center justify-center w-full gap-4">
+                            <button type="button" class="text-sm text-center underline py-2 rounded-md"
+                                :class="!canLogin() ? 'text-gray-500' : 'text-gray-900 hover:text-gray-950'"
+                                @click="handleLogin" :disabled="!canLogin()">Login</button>
+                        </div>
+                    </div>
+                    <button type="button" class="text-white w-full text-center rounded-md pb-4" @click="signUpMode = !signUpMode">
+                        <span class="text-sm underline text-gray-900 hover:text-gray-700">
+                            Create an account
+                        </span>
                     </button>
                 </div>
             </div>
