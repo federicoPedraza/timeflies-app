@@ -177,67 +177,102 @@ const hasEventOnFullHour = (date: Date, hour: number) => {
       end.getTime() !== fullHour.getTime() // ← filter exact match
   })
 }
-function getOverlappingEvents(events: TimeEvent[]) {
+
+function groupOverlappingClusters(events: TimeEvent[]): TimeEvent[][] {
   const sorted = [...events].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-  const columns: TimeEvent[][] = [];
+  const clusters: TimeEvent[][] = []
 
   for (const event of sorted) {
-    let placed = false;
-    for (let col = 0; col < columns.length; col++) {
-      const last = columns[col][columns[col].length - 1];
-      if (new Date(event.start) >= new Date(last.end)) {
-        columns[col].push(event);
-        placed = true;
-        break;
+    const eventStart = new Date(event.start)
+    const eventEnd = new Date(event.end)
+
+    let addedToCluster = false
+    for (const cluster of clusters) {
+      const overlap = cluster.some(e => {
+        const start = new Date(e.start)
+        const end = new Date(e.end)
+        return start < eventEnd && end > eventStart
+      })
+
+      if (overlap) {
+        cluster.push(event)
+        addedToCluster = true
+        break
       }
     }
-    if (!placed) columns.push([event]);
+
+    if (!addedToCluster) {
+      clusters.push([event])
+    }
   }
 
-  const eventToColumn = new Map<string, number>();
-  columns.forEach((col, colIdx) => {
-    col.forEach(event => eventToColumn.set(event.id, colIdx));
-  });
+  return clusters
+}
 
-  return {
-    eventToColumn,
-    numColumns: columns.length
-  };
+function assignColumns(cluster: TimeEvent[]) {
+  const columns: TimeEvent[][] = []
+  const eventToColumn = new Map<string, number>()
+
+  for (const event of cluster) {
+    const eventStart = new Date(event.start)
+    const eventEnd = new Date(event.end)
+
+    let assigned = false
+    for (let colIndex = 0; colIndex < columns.length; colIndex++) {
+      const col = columns[colIndex]
+      if (col.every(e => {
+        const start = new Date(e.start)
+        const end = new Date(e.end)
+        return end <= eventStart || start >= eventEnd
+      })) {
+        col.push(event)
+        eventToColumn.set(event.id, colIndex)
+        assigned = true
+        break
+      }
+    }
+
+    if (!assigned) {
+      columns.push([event])
+      eventToColumn.set(event.id, columns.length - 1)
+    }
+  }
+
+  return { eventToColumn, numColumns: columns.length }
+}
+
+function getOverlappingMeta(events: TimeEvent[]): Map<string, { count: number; index: number }> {
+  const meta = new Map<string, { count: number; index: number }>()
+  const clusters = groupOverlappingClusters(events)
+
+  for (const cluster of clusters) {
+    const { eventToColumn, numColumns } = assignColumns(cluster)
+    for (const event of cluster) {
+      meta.set(event.id, {
+        count: numColumns,
+        index: eventToColumn.get(event.id)!
+      })
+    }
+  }
+
+  return meta
 }
 
 const overlappingMeta = computed(() => {
   const meta = new Map<string, Map<string, { count: number; index: number }>>();
 
   for (const date of dateObjects.value) {
-    const eventsOnDay = eventStore.events.filter(e => isSameDay(new Date(e.start), date));
-    const map = new Map<string, { count: number; index: number }>();
-
-    for (const date of dateObjects.value) {
-  const dayKey = date.toDateString();
-  const eventsOnDay = eventStore.events.filter(e => isSameDay(new Date(e.start), date));
-  const map = new Map<string, { count: number; index: number }>();
-
-  const { eventToColumn, numColumns } = getOverlappingEvents(eventsOnDay);
-
-  for (const event of eventsOnDay) {
-    const index = eventToColumn.get(event.id) ?? 0;
-    map.set(event.id, {
-      count: numColumns,
-      index
-    });
-  }
-
-  meta.set(dayKey, map);
-}
-
-
-    meta.set(date.toDateString(), map);
+    const dayEvents = eventStore.events.filter(e => isSameDay(new Date(e.start), date));
+    const clusterMeta = getOverlappingMeta(dayEvents)
+    const dayMap = new Map<string, { count: number; index: number }>()
+    for (const [id, value] of clusterMeta.entries()) {
+      dayMap.set(id, value)
+    }
+    meta.set(date.toDateString(), dayMap)
   }
 
   return meta;
 });
-
-
 
 onMounted(() => {
   recalculateDayWidth()
@@ -382,17 +417,10 @@ watchEffect(() => {
                   </div>
                 </template>
                 <!-- EVENTS -->
-                <CalendarEvent
-                  variant="default"
-                  v-for="(event) in getEventsForCell(date, hour)"
-                  :key="event.id"
-                  :event="event"
-                  :style="getEventStyle(event)"
+                <CalendarEvent variant="default" v-for="(event) in getEventsForCell(date, hour)" :key="event.id"
+                  :event="event" :style="getEventStyle(event)"
                   :overlappingEventsCount="overlappingMeta.get(date.toDateString())?.get(event.id)?.count ?? 1"
-:eventIndex="overlappingMeta.get(date.toDateString())?.get(event.id)?.index ?? 0"
-
-
-                  @click="(e: MouseEvent) => {
+                  :eventIndex="overlappingMeta.get(date.toDateString())?.get(event.id)?.index ?? 0" @click="(e: MouseEvent) => {
                     const container = bodyScrollContainer
                     const targetEl = e.currentTarget as HTMLElement
 
@@ -419,12 +447,8 @@ watchEffect(() => {
                 <!-- GHOST EVENT -->
                 <CalendarEvent
                   v-if="calendarStore.ghostEvent && isSameDay(new Date(calendarStore.ghostEvent.start), date) && new Date(calendarStore.ghostEvent.start).getHours() === hour"
-                  variant="edit"
-                  :event="calendarStore.ghostEvent"
-                  :style="getEventStyle(calendarStore.ghostEvent)"
-                  :overlappingEventsCount="1"
-                  :eventIndex="0"
-                  @click="(e: MouseEvent) => {
+                  variant="edit" :event="calendarStore.ghostEvent" :style="getEventStyle(calendarStore.ghostEvent)"
+                  :overlappingEventsCount="1" :eventIndex="0" @click="(e: MouseEvent) => {
                     const container = bodyScrollContainer
                     const targetEl = e.currentTarget as HTMLElement
 
@@ -453,12 +477,13 @@ watchEffect(() => {
           </div>
           <div v-if="selectedEvent" class="absolute inset-0 z-[99]" @click="closeEventPopup">
           </div>
-          <EventPopup v-if="selectedEvent" :event="selectedEvent" :isGhostEvent="selectedEvent.id === calendarStore.ghostEvent?.id" :close="closeEventPopup" :style="{
-            position: 'absolute',
-            left: `${selectedEvent.x}px`,
-            top: `${selectedEvent.y}px`,
-            zIndex: 100
-          }" @update:event="(updatedEvent) => selectedEvent = updatedEvent" />
+          <EventPopup v-if="selectedEvent" :event="selectedEvent"
+            :isGhostEvent="selectedEvent.id === calendarStore.ghostEvent?.id" :close="closeEventPopup" :style="{
+              position: 'absolute',
+              left: `${selectedEvent.x}px`,
+              top: `${selectedEvent.y}px`,
+              zIndex: 100
+            }" @update:event="(updatedEvent) => selectedEvent = updatedEvent" />
         </div>
       </div>
     </div>
