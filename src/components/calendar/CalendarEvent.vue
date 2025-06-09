@@ -30,6 +30,7 @@ const emit = defineEmits<{
   (e: 'resize:start', deltaMinutes: number): void
   (e: 'resize:end', deltaMinutes: number): void
 }>()
+
 const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e: MouseEvent) => {
   e.stopPropagation()
   const startY = e.clientY
@@ -139,8 +140,6 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
       emit('resize:start', delta)
       emit('resize:end', delta)
     }
-
-    calendarStore.destroyGhostEvent()
   }
 
   window.addEventListener('mousemove', onMouseMove)
@@ -164,7 +163,7 @@ const isTooOverlapped = computed(() => {
 
 <template>
   <div
-    class="absolute border-l-[3px] rounded-[4px] p-1.5 overflow-hidden flex gap-0 hover:cursor-pointer transition-all duration-100 hover:shadow-xl z-20"
+    class="calendar-event absolute border-l-[3px] rounded-[4px] p-1.5 overflow-hidden flex gap-0 hover:cursor-pointer transition-all duration-100 hover:shadow-xl z-20"
     @click="handleClick" @mousedown.left="(e) => startGhostDrag(event)(e)" :style="{
       width: `${100 / overlappingEventsCount}%`,
       left: `${(100 / overlappingEventsCount) * eventIndex}%`

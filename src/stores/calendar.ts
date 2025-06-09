@@ -25,11 +25,7 @@ export const useCalendarStore = defineStore('calendar', () => {
     const ghostEvent = ref<TimeEvent & { x: number; y: number } | null>(null);
 
     // create ghost event
-    const createGhostEvent = () => {
-        const startingDate = new Date() // snap to nearest 5 minutes
-        const roundedMinutes = Math.round(startingDate.getMinutes() / 5) * 5
-        startingDate.setMinutes(roundedMinutes)
-
+    const createGhostEvent = (startingDate: Date = new Date()) => {
         const endDate = new Date(startingDate.getTime() + 60 * 60 * 1000) // 1 hour
 
         const newGhostEvent: TimeEvent & { x: number; y: number } = {

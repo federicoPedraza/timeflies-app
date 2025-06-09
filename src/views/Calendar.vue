@@ -327,6 +327,18 @@ const onResizeEvent = async (event: TimeEvent, minutes: number, isStart: boolean
     event.end = new Date(event.end.getTime() + minutes * 60 * 1000)
     await eventStore.modifyEvent(event)
   }
+
+  calendarStore.destroyGhostEvent()
+}
+
+const onResizeGhostEvent = async (minutes: number, isStart: boolean) => {
+  if (!calendarStore.ghostEvent) return
+
+  if (isStart) {
+    calendarStore.ghostEvent.start = new Date(calendarStore.ghostEvent.start.getTime())
+  } else {
+    calendarStore.ghostEvent.end = new Date(calendarStore.ghostEvent.end.getTime())
+  }
 }
 
 // HEADER -> BODY SCROLL
@@ -365,6 +377,22 @@ watchEffect(() => {
 watchEffect(() => {
   recalculateDayWidth()
 })
+
+const onCellClick = (date: Date, hour: number, e: MouseEvent) => {
+  if (calendarStore.ghostEvent) return
+
+  // prevent opening event popup on event click
+  const target = e.target as HTMLElement
+  if (target.closest('.calendar-event')) return
+
+  const cellRect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  const clickY = e.clientY - cellRect.top
+  const minutes = Math.round((clickY / 72) * 60)
+
+  const start = new Date(date)
+  start.setHours(hour, minutes, 0, 0)
+  calendarStore.createGhostEvent(start)
+}
 </script>
 
 <template>
@@ -417,7 +445,7 @@ watchEffect(() => {
                   index === 0 ? 'border-l-[0px]' : 'border-l-[1px]',
                   hasEventOnFullHour(date, hour + 1) ? 'border-b-transparent' : 'border-b-[#E0E0E0]',
                   'border-l-[#E0E0E0]'
-                ]">
+                ]" @click="(e) => onCellClick(date, hour, e)">
                 <!-- FINE LINE -->
                 <template v-if="!hasEventCrossingHalfHour(date, hour)">
                   <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-[#F7F7F7]"></div>
@@ -433,7 +461,6 @@ watchEffect(() => {
                 <!-- EVENTS -->
                 <CalendarEvent variant="default" v-for="(event) in getEventsForCell(date, hour)" :key="event.id"
                   :event="event" :style="calendarStore.ghostEvent?.id === event.id ? { display: 'none' } : getEventStyle(event)"
-
                   :overlappingEventsCount="overlappingMeta.get(date.toDateString())?.get(event.id)?.count ?? 1"
                   :eventIndex="overlappingMeta.get(date.toDateString())?.get(event.id)?.index ?? 0"
                   @click="(e: MouseEvent) => {
@@ -491,6 +518,12 @@ watchEffect(() => {
                         y: eventRect.top - containerRect.top + container.scrollTop
                       } : null
                     }
+                  }"
+                  @resize:start="(minutes) => {
+                    onResizeGhostEvent(minutes, true)
+                  }"
+                  @resize:end="(minutes) => {
+                    onResizeGhostEvent(minutes, false)
                   }" />
               </CalendarCell>
             </div>

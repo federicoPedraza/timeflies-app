@@ -24,7 +24,10 @@ const handleLogoutClick = async () => {
 }
 
 const handleMoreClick = () => {
-  calendarStore.createGhostEvent()
+  const today = new Date()
+  const closestNext5MinuteMark = Math.round(today.getMinutes() / 5) * 5
+  today.setMinutes(closestNext5MinuteMark)
+  calendarStore.createGhostEvent(today)
 }
 </script>
 
