@@ -94,11 +94,47 @@ export const useEventStore = defineStore('events', () => {
     }
   }
 
+  async function createEvent(event: Partial<TimeEvent>) {
+    const authStore = useAuthStore()
+    const token = authStore.token || localStorage.getItem('token')
+
+    if (!event.title) {
+      error.value = 'Event title is required'
+      return
+    }
+
+    try {
+      const res = await fetch(`${API}/v1/calendar/create`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: event.title,
+          description: event.description,
+          start: event.start?.toISOString(),
+          end: event.end?.toISOString()
+        })
+      })
+
+      if (!res.ok) throw new Error('Failed to create event')
+
+      await res.json()
+      await fetchEvents()
+    } catch (err: any) {
+      error.value = err.message
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     events,
     loading,
     error,
     fetchEvents,
-    modifyEvent
+    modifyEvent,
+    createEvent
   }
 })

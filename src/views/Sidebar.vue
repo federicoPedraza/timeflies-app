@@ -24,7 +24,7 @@ const handleLogoutClick = async () => {
 }
 
 const handleMoreClick = () => {
-  console.log('more clicked')
+  calendarStore.createGhostEvent()
 }
 </script>
 

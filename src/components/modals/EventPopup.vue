@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { useCalendarStore } from '@/stores/calendar';
 import { useEventStore, type TimeEvent } from '@/stores/events'
 import { formatDate } from 'date-fns';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
   event: TimeEvent & { x: number; y: number },
+  isGhostEvent: boolean,
   close: () => void
 }>()
 
@@ -92,6 +94,20 @@ const canBeSaved = computed(() => {
   return hasChanges.value && !titleHasError() && !descriptionHasError()
 })
 
+const createEvent = async () => {
+  const eventStore = useEventStore()
+  await eventStore.createEvent({
+    title: changes.value.title,
+    description: changes.value.description,
+    start: props.event.start,
+    end: props.event.end
+  })
+
+  const calendarStore = useCalendarStore()
+  calendarStore.destroyGhostEvent()
+  close()
+}
+
 const saveChanges = async () => {
   const eventStore = useEventStore()
   const payload: Partial<TimeEvent> = {
@@ -122,89 +138,93 @@ const saveChanges = async () => {
 </script>
 
 <template>
-  <div class="absolute z-[1000] bg-white p-4 rounded-lg shadow-lg border border-gray-200 min-w-[240px]"
+  <div class="absolute z-[1000] bg-white p-4 rounded-lg shadow-lg border border-gray-200 w-[360px] h-1/4"
     :style="{ left: `${event.x}px`, top: `${event.y}px` }">
-    <div class="flex flex-col gap-2">
-      <div class="flex justify-between items-center">
-        <div class="flex flex-row gap-2 justify-start items-center">
-          <img src="@/assets/icons/event-icons/event-default-icon.svg" alt="calendar icon" class="w-4 h-4" />
-          <template v-if="!isEditMode">
-            <h1 class="text-sm font-semibold text-gray-800">{{ event.title }}</h1>
-          </template>
-          <div v-else class="flex flex-row gap-2 justify-start items-center">
-          <input type="text"
-            id="title-input"
-            placeholder="Add a title..."
-            class="border-l-2 pl-2 text-sm font-semibold text-gray-800 underline focus:outline-none focus:border-[#0EA5E9]"
-            :class="titleBorderClass"
-            :value="changes.title"
-            @change="onTitleChange"
-            @input="(e) => handleInput('title', (e.target as HTMLInputElement).value)" />
+    <div class="flex flex-col justify-between items-start h-full gap-2">
+      <div class="flex h-full flex-col w-full justify-start items-start">
+        <div class="flex justify-between w-full items-center">
+          <div class="flex flex-row gap-2 justify-start items-center">
+            <img src="@/assets/icons/event-icons/event-default-icon.svg" alt="calendar icon" class="w-4 h-4" />
+            <template v-if="!isEditMode">
+              <h1 class="text-sm font-semibold text-gray-800">{{ event.title }}</h1>
+            </template>
+            <div v-else class="flex flex-row gap-2 justify-start items-center">
+            <input type="text"
+              id="title-input"
+              placeholder="Add a title..."
+              class="border-l-2 pl-2 text-sm font-semibold text-gray-800 underline focus:outline-none focus:border-[#0EA5E9]"
+              :class="titleBorderClass"
+              :value="changes.title"
+              @change="onTitleChange"
+              @input="(e) => handleInput('title', (e.target as HTMLInputElement).value)" />
+            </div>
+          </div>
+          <div class="flex justify-center items-center p-1">
+            <button class="flex justify-center items-center p-1 rounded-full  bg-gray-50 hover:bg-gray-200 hover:shadow-md" @click="close">
+              <img src="@/assets/icons/sidebar/close-icon.svg" alt="close" class="w-4 h-4" />
+            </button>
           </div>
         </div>
-        <div class="flex justify-center items-center p-1">
-          <button class="flex justify-center items-center p-1 rounded-full  bg-gray-50 hover:bg-gray-200 hover:shadow-md" @click="close">
-            <img src="@/assets/icons/sidebar/close-icon.svg" alt="close" class="w-4 h-4" />
+        <div class="flex flex-col gap-2">
+          <span class="text-xs text-[#71717A]">
+            {{ getEventDayName(event) }} {{ formatDate(event.start, 'dd') }} at {{ formatDate(event.start, 'HH:mm a') }} -
+            {{ formatDate(event.end, 'HH:mm a') }}
+          </span>
+          <div class="mt-2 flex flex-row gap-2" :class="{ 'items-start': isEditMode, 'items-center': !isEditMode }">
+            <div class="flex flex-col justify-center items-center p-1">
+              <img src="@/assets/icons/text-icon.svg" alt="description icon" class="w-4 h-4" />
+            </div>
+            <span v-if="!isEditMode"
+              class="text-sm text-gray-600 whitespace-pre-line break-words leading-snug max-w-[270px]"
+              :class="{ 'text-gray-400': event.description.trim() === '' }">
+              {{ event.description || 'No description' }}
+            </span>
+            <textarea v-else rows="2" id="description-input"
+              placeholder="Add a description..."
+              class="text-sm border-l-2  text-gray-600 leading-snug w-[270px] resize-none rounded-sm px-1 py-[2px] focus:outline-none focus:border-[#0EA5E9] h-32 border pt-2"
+              :class="descriptionBorderClass"
+              :value="changes.description"
+              @change="onDescriptionChange"
+              @input="(e) => handleInput('description', (e.target as HTMLTextAreaElement).value)" />
+          </div>
+        </div>
+      </div>
+      <div v-if="isEditMode" class="my-2 flex flex-row w-full justify-center items-center gap-4">
+        <button type="button" :disabled="!canBeSaved" class="hover:bg-gray-100 shadow-sm bg-gray-100 disabled:bg-gray-200  disabled:text-gray-400 disabled:cursor-not-allowed hover:shadow-md p-1 rounded-full flex justify-center items-center gap-1" @click="isGhostEvent ? createEvent() : saveChanges()">
+          <div class="flex justify-center items-center p-1">
+            <img src="@/assets/icons/save-icon.svg" alt="save description changes" class="w-3 h-3" :class="{ 'save-icon-disabled': !canBeSaved }" />
+          </div>
+          <span class="text-xs">{{ isGhostEvent ? 'Create event' : 'Save changes' }}</span>
+          </button>
+      </div>
+      <div class="flex flex-col w-full justify-center items-center gap-4">
+        <div
+          class="w-3/4 shadow-md mx-auto flex flex-row justify-stretch items-center border rounded-lg border-gray-200" :class="{ 'mt-8': !isEditMode }">
+          <button type="button" @click="toggleViewMode" :disabled="isTryingToDelete"
+            class="rounded-l-lg  w-full h-full flex justify-center items-center p-1"
+            :class="[{ 'bg-gray-100': !isEditMode || isTryingToDelete }, { 'hover:shadow-md': !isTryingToDelete }]">
+            <img src="@/assets/icons/eye-icon.svg" alt="enable view mode" class="w-4 h-4" />
+          </button>
+          <button type="button" @click="toggleEditMode" :disabled="isTryingToDelete"
+            class="w-full h-full flex justify-center items-center p-1 border-x-[1px]"
+            :class="[{ 'bg-gray-100': isEditMode || isTryingToDelete }, { 'hover:shadow-md': !isTryingToDelete }]">
+            <img src="@/assets/icons/edit-icon.svg" alt="enable edit mode" class="w-4 h-4" />
+          </button>
+          <button type="button" @click="toggleDeleteMode"
+            class="w-full rounded-r-lg h-full flex justify-center items-center p-1"
+            :class="[{ 'bg-red-100': isTryingToDelete }, { 'hover:shadow-md': !isTryingToDelete }]">
+            <img src="@/assets/icons/trash-icon.svg" alt="delete event" class="w-4 h-4" />
           </button>
         </div>
-      </div>
-      <div class="flex flex-col gap-2">
-        <span class="text-xs text-[#71717A]">
-          {{ getEventDayName(event) }} {{ formatDate(event.start, 'dd') }} at {{ formatDate(event.start, 'HH:mm a') }} -
-          {{ formatDate(event.end, 'HH:mm a') }}
-        </span>
-        <div class="mt-2 flex flex-row gap-2" :class="{ 'items-start': isEditMode, 'items-center': !isEditMode }">
-          <div class="flex flex-col justify-center items-center p-1">
-            <img src="@/assets/icons/text-icon.svg" alt="description icon" class="w-4 h-4" />
+        <div v-if="isTryingToDelete" class="flex w-full flex-col justify-center items-center gap-2">
+          <span class="text-sm text-gray-600">Are you sure you'd like to {{ isGhostEvent ? 'discard' : 'delete' }} this event?</span>
+          <div class="flex flex-row justify-center items-center gap-8">
+            <button type="button"
+              class="text-red-400 text-sm rounded-md hover:text-red-500 hover:text-shadow">{{ isGhostEvent ? 'Discard' : 'Delete' }}</button>
+            <button type="button" @click="toggleDeleteMode"
+              class="text-gray-600 text-sm rounded-md hover:text-gray-700 hover:text-shadow">Cancel</button>
           </div>
-          <span v-if="!isEditMode"
-            class="text-sm text-gray-600 whitespace-pre-line break-words leading-snug max-w-[270px]"
-            :class="{ 'text-gray-400': event.description.trim() === '' }">
-            {{ event.description || 'No description' }}
-          </span>
-          <textarea v-else rows="2" id="description-input"
-            placeholder="Add a description..."
-            class="text-sm border-l-2  text-gray-600 leading-snug w-[270px] resize-none rounded-sm px-1 py-[2px] focus:outline-none focus:border-[#0EA5E9] h-32 border pt-2"
-            :class="descriptionBorderClass"
-            :value="changes.description"
-            @change="onDescriptionChange"
-            @input="(e) => handleInput('description', (e.target as HTMLTextAreaElement).value)" />
         </div>
-      </div>
-    </div>
-    <div v-if="isEditMode" class="my-2 flex flex-row justify-center items-center gap-4">
-      <button type="button" :disabled="!canBeSaved" class="hover:bg-gray-100 shadow-sm bg-gray-100 disabled:bg-gray-200  disabled:text-gray-400 disabled:cursor-not-allowed hover:shadow-md p-1 rounded-full flex justify-center items-center gap-1" @click="saveChanges">
-        <div class="flex justify-center items-center p-1">
-          <img src="@/assets/icons/save-icon.svg" alt="save description changes" class="w-3 h-3" :class="{ 'save-icon-disabled': !canBeSaved }" />
-        </div>
-        <span class="text-xs">Save changes</span>
-        </button>
-    </div>
-    <div
-      class="w-3/4 shadow-md mx-auto flex flex-row justify-stretch items-center border rounded-lg border-gray-200" :class="{ 'mt-8': !isEditMode }">
-      <button type="button" @click="toggleViewMode" :disabled="isTryingToDelete"
-        class="rounded-l-lg  w-full h-full flex justify-center items-center p-1"
-        :class="[{ 'bg-gray-100': !isEditMode || isTryingToDelete }, { 'hover:shadow-md': !isTryingToDelete }]">
-        <img src="@/assets/icons/eye-icon.svg" alt="enable view mode" class="w-4 h-4" />
-      </button>
-      <button type="button" @click="toggleEditMode" :disabled="isTryingToDelete"
-        class="w-full h-full flex justify-center items-center p-1 border-x-[1px]"
-        :class="[{ 'bg-gray-100': isEditMode || isTryingToDelete }, { 'hover:shadow-md': !isTryingToDelete }]">
-        <img src="@/assets/icons/edit-icon.svg" alt="enable edit mode" class="w-4 h-4" />
-      </button>
-      <button type="button" @click="toggleDeleteMode"
-        class="w-full rounded-r-lg h-full flex justify-center items-center p-1"
-        :class="[{ 'bg-red-100': isTryingToDelete }, { 'hover:shadow-md': !isTryingToDelete }]">
-        <img src="@/assets/icons/trash-icon.svg" alt="delete event" class="w-4 h-4" />
-      </button>
-    </div>
-    <div v-if="isTryingToDelete" class="mt-4 flex flex-col justify-center items-center gap-2">
-      <span class="text-sm text-gray-600">Are you sure you'd like to delete this event?</span>
-      <div class="flex flex-row justify-center items-center gap-8">
-        <button type="button"
-          class="text-red-400 text-sm rounded-md hover:text-red-500 hover:text-shadow">Delete</button>
-        <button type="button" @click="toggleDeleteMode"
-          class="text-gray-600 text-sm rounded-md hover:text-gray-700 hover:text-shadow">Cancel</button>
       </div>
     </div>
   </div>

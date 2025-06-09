@@ -1,3 +1,4 @@
+import type { TimeEvent } from "./events";
 import { defineStore } from "pinia";
 import { ref } from "vue";
 
@@ -18,6 +19,34 @@ export const useCalendarStore = defineStore('calendar', () => {
     // actions
     const setVisibleMonth = (month: Date) => {
         visibleMonth.value = month;
+    }
+
+    // ghosts
+    const ghostEvent = ref<TimeEvent & { x: number; y: number } | null>(null);
+
+    // create ghost event
+    const createGhostEvent = () => {
+        const startingDate = new Date() // snap to nearest 5 minutes
+        const roundedMinutes = Math.round(startingDate.getMinutes() / 5) * 5
+        startingDate.setMinutes(roundedMinutes)
+
+        const endDate = new Date(startingDate.getTime() + 60 * 60 * 1000) // 1 hour
+
+        const newGhostEvent: TimeEvent & { x: number; y: number } = {
+            id: crypto.randomUUID(),
+            title: 'New Event',
+            description: '',
+            start: startingDate,
+            end: endDate,
+            x: 0,
+            y: 0
+        }
+
+        ghostEvent.value = newGhostEvent;
+    }
+
+    const destroyGhostEvent = () => {
+        ghostEvent.value = null;
     }
 
     const getDayNamesInOrder = () => {
@@ -44,5 +73,8 @@ export const useCalendarStore = defineStore('calendar', () => {
         getDayNamesInOrder,
         getDayName,
         lastFocusedDate,
+        ghostEvent,
+        createGhostEvent,
+        destroyGhostEvent
     }
 })

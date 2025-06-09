@@ -357,7 +357,7 @@ watchEffect(() => {
                 </template>
                 <!-- EVENTS -->
                 <CalendarEvent
-                  variant="edit"
+                  variant="default"
                   v-for="(event) in getEventsForCell(date, hour)"
                   :key="event.id"
                   :event="event"
@@ -388,12 +388,44 @@ watchEffect(() => {
                       }
                     }
                   }" />
+                <!-- GHOST EVENT -->
+                <CalendarEvent
+                  v-if="calendarStore.ghostEvent && isSameDay(new Date(calendarStore.ghostEvent.start), date) && new Date(calendarStore.ghostEvent.start).getHours() === hour"
+                  variant="edit"
+                  :event="calendarStore.ghostEvent"
+                  :style="getEventStyle(calendarStore.ghostEvent)"
+                  :overlappingEventsCount="1"
+                  :eventIndex="0"
+                  @click="(e: MouseEvent) => {
+                    const container = bodyScrollContainer
+                    const targetEl = e.currentTarget as HTMLElement
+
+                    if (container && targetEl) {
+                      const containerRect = container.getBoundingClientRect()
+                      const eventRect = targetEl.getBoundingClientRect()
+
+                      const popupWidth = 240
+                      const rightGap = 8
+                      const leftGap = 100
+
+                      const rightX = eventRect.right - containerRect.left + container.scrollLeft + rightGap
+                      const leftX = eventRect.left - containerRect.left + container.scrollLeft - popupWidth - leftGap
+
+                      const fitsOnRight = rightX + popupWidth < container.scrollLeft + container.clientWidth
+
+                      selectedEvent = calendarStore.ghostEvent ? {
+                        ...calendarStore.ghostEvent,
+                        x: fitsOnRight ? rightX : Math.max(leftX, 0),
+                        y: eventRect.top - containerRect.top + container.scrollTop
+                      } : null
+                    }
+                  }" />
               </CalendarCell>
             </div>
           </div>
           <div v-if="selectedEvent" class="absolute inset-0 z-[99]" @click="closeEventPopup">
           </div>
-          <EventPopup v-if="selectedEvent" :event="selectedEvent" :close="closeEventPopup" :style="{
+          <EventPopup v-if="selectedEvent" :event="selectedEvent" :isGhostEvent="selectedEvent.id === calendarStore.ghostEvent?.id" :close="closeEventPopup" :style="{
             position: 'absolute',
             left: `${selectedEvent.x}px`,
             top: `${selectedEvent.y}px`,
