@@ -40,6 +40,7 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
 
   const originalStart = new Date(event.start)
   const originalEnd = new Date(event.end)
+  const duration = originalEnd.getTime() - originalStart.getTime()
 
   let animationFrameId: number | null = null
   let tempGhost: TimeEvent | null = null
@@ -66,7 +67,9 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
     if (!hasMoved) return
 
     const dy = moveEvent.clientY - startY
+    const dx = moveEvent.clientX - startX
     let deltaMinutes = Math.round((dy / 72) * 60)
+    let deltaDays = Math.round(dx / 144) // 144px is the day width
 
     if (moveEvent.shiftKey) {
       const snapToNearest15 = (date: Date) => {
@@ -88,11 +91,17 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
         if (newEnd <= originalStart) return
         tempGhost!.end = snapToNearest15(newEnd)
       } else {
+        // For dragging, update both start and end times
         const newStart = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
-        const newEnd = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
-        if (newStart < newEnd) {
+        newStart.setDate(newStart.getDate() + deltaDays)
+        const newEnd = new Date(newStart.getTime() + duration)
+
+        if (moveEvent.shiftKey) {
           tempGhost!.start = snapToNearest15(newStart)
-          tempGhost!.end = snapToNearest15(newEnd)
+          tempGhost!.end = new Date(tempGhost!.start.getTime() + duration)
+        } else {
+          tempGhost!.start = newStart
+          tempGhost!.end = newEnd
         }
       }
     } else {
@@ -105,12 +114,12 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
         if (newEnd <= originalStart) return
         tempGhost!.end = newEnd
       } else {
+        // For dragging, update both start and end times
         const newStart = new Date(originalStart.getTime() + deltaMinutes * 60 * 1000)
-        const newEnd = new Date(originalEnd.getTime() + deltaMinutes * 60 * 1000)
-        if (newStart < newEnd) {
-          tempGhost!.start = newStart
-          tempGhost!.end = newEnd
-        }
+        newStart.setDate(newStart.getDate() + deltaDays)
+        const newEnd = new Date(newStart.getTime() + duration)
+        tempGhost!.start = newStart
+        tempGhost!.end = newEnd
       }
     }
 
