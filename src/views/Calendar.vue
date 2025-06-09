@@ -27,7 +27,7 @@ watch(
     dateObjects.value = generateMonthRange(newMonth)
     nextTick(() => {
       if (!isPreviousMonth) {
-        scrollToTodayOrFirst()
+        scrollToToday(-1)
       } else {
         scrollToDay(dateObjects.value.length - 1)
       }
@@ -110,12 +110,9 @@ const generateMonthRange = (center: Date) => {
   return eachDayOfInterval({ start, end })
 }
 
-const scrollToTodayOrFirst = () => {
+const scrollToToday = (offset: number = 0) => {
   const today = calendarStore.today
-  const weekStart = startOfWeek(today, { weekStartsOn: startsWithSunday ? 0 : 1 })
-  const weekStartIndex = dateObjects.value.findIndex(d => isSameDay(d, weekStart))
-  const scrollTarget = weekStartIndex !== -1 ? weekStartIndex : 0
-  scrollToDay(scrollTarget)
+  scrollToDay(dateObjects.value.findIndex(d => isSameDay(d, today)) + offset)
 }
 
 const scrollToDay = (dayIndex: number) => {
@@ -224,7 +221,7 @@ onMounted(() => {
   currentWeekStart.value = startOfWeek(calendarStore.today, { weekStartsOn: startsWithSunday ? 0 : 1 })
   dateObjects.value = generateMonthRange(calendarStore.visibleMonth)
   requestAnimationFrame(() => {
-    scrollToTodayOrFirst()
+    scrollToToday(-1) // we do -1 because we want to see at least the past day
     scrollToHour(getStartingVisibleHour())
   })
   onMounted(() => {
