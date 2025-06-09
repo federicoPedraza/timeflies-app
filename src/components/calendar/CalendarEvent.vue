@@ -28,14 +28,12 @@ const handleClick = (e: MouseEvent) => {
 
 const isShortEvent = computed(() => {
     const durationMs = props.event.end.getTime() - props.event.start.getTime()
-    return durationMs < 30 * 60 * 1000 // 30 minutes is considered short
+    return durationMs <= 30 * 60 * 1000 // 30 minutes is considered short
 })
 
 const isTooOverlapped = computed(() => {
     return props.overlappingEventsCount >= 3
 })
-
-console.log(props.event.title, ' is overlapped because of', props.overlappingEventsCount, ' events and he is at index', props.eventIndex, ' and he goes from ', props.event.start, ' to ', props.event.end)
 </script>
 
 <template>

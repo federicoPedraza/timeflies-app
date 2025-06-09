@@ -87,6 +87,13 @@ const endDayChanges = ref({
   time: props.event.end.toTimeString().slice(0, 5)
 })
 
+const startDayChanges = ref({
+  day: props.event.start.getDate().toString(),
+  month: (props.event.start.getMonth() + 1).toString().padStart(2, '0'),
+  year: props.event.start.getFullYear().toString(),
+  time: props.event.start.toTimeString().slice(0, 5)
+})
+
 const buildEndTime = computed(() => {
   const { year, month, day, time } = endDayChanges.value
   const paddedMonth = month.padStart(2, '0')
@@ -95,6 +102,45 @@ const buildEndTime = computed(() => {
 
   const date = parseISO(iso)
   return isNaN(date.getTime()) ? null : date
+})
+
+const buildStartTime = computed(() => {
+  const { year, month, day, time } = startDayChanges.value
+  const paddedMonth = month.padStart(2, '0')
+  const paddedDay = day.padStart(2, '0')
+  const iso = `${year}-${paddedMonth}-${paddedDay}T${time || '00:00'}`
+  const date = parseISO(iso)
+  return isNaN(date.getTime()) ? null : date
+})
+
+const safeStartDate = computed(() => {
+  const date = buildStartTime.value
+  if (!date) return null
+  props.event.start = date
+  return date
+})
+
+const safeMaxStartDay = computed(() => {
+  const { year, month } = startDayChanges.value
+  const iso = `${year}-${month.padStart(2, '0')}-01`
+  const date = parseISO(iso)
+  return isNaN(date.getTime()) ? 31 : getDaysInMonth(date)
+})
+
+const validStartTime = computed(() => {
+  const date = safeStartDate.value
+  if (!date) return false
+  const yyyy = date.getFullYear().toString()
+  const mm = (date.getMonth() + 1).toString().padStart(2, '0')
+  const dd = date.getDate().toString()
+  const hhmm = date.toTimeString().slice(0, 5)
+
+  return (
+    startDayChanges.value.year === yyyy &&
+    startDayChanges.value.month === mm &&
+    startDayChanges.value.day === dd &&
+    startDayChanges.value.time === hhmm
+  )
 })
 
 const changes = ref({
@@ -112,7 +158,6 @@ const endMonthInput = computed({
     endDayChanges.value.month = month
   }
 })
-
 
 const safeEndDate = computed(() => {
   const date = buildEndTime.value
@@ -160,15 +205,18 @@ const validEndTime = computed(() => {
   )
 })
 
-const isChanged = (field: 'title' | 'description' | 'end') => {
+const isChanged = (field: 'title' | 'description' | 'end' | 'start') => {
   if (field === 'end') {
-    return changes.value.end !== props.event.end
+    return buildEndTime.value !== props.event.end
   }
-  return changes.value[field].trim() !== props.event[field].trim()
+  if (field === 'start') {
+    return buildStartTime.value !== props.event.start
+  }
+  return changes.value[field] !== props.event[field]
 }
 
 const hasChanges = computed(() => {
-  return isChanged('title') || isChanged('description') || isChanged('end')
+  return isChanged('title') || isChanged('description') || isChanged('end') || isChanged('start')
 })
 
 const discardChanges = (field: 'title' | 'description') => {
@@ -180,6 +228,22 @@ const titleBorderClass = computed(() => {
     'border-l-gray-300': !isChanged('title'),
     'border-l-green-500': isChanged('title') && !titleHasError(),
     'border-l-red-500': titleHasError()
+  }
+})
+
+const startBorderClass = computed(() => {
+  return {
+    'border-l-gray-300': !isChanged('start'),
+    'border-l-green-500': isChanged('start') && !validStartTime,
+    'border-l-red-500': !validStartTime
+  }
+})
+
+const endBorderClass = computed(() => {
+  return {
+    'border-l-gray-300': !isChanged('end'),
+    'border-l-green-500': isChanged('end') && !validEndTime,
+    'border-l-red-500': !validEndTime
   }
 })
 
@@ -219,6 +283,10 @@ const handleEndInput = (field: 'day' | 'month' | 'time', value: string | number)
   endDayChanges.value[field] = value as never
 }
 
+const handleStartInput = (field: 'day' | 'month' | 'time', value: string | number) => {
+  startDayChanges.value[field] = value as never
+}
+
 const canBeSaved = computed(() => {
   return hasChanges.value && !titleHasError() && !descriptionHasError()
 })
@@ -228,7 +296,7 @@ const createEvent = async () => {
   await eventStore.createEvent({
     title: changes.value.title,
     description: changes.value.description,
-    start: props.event.start,
+    start: buildStartTime.value || props.event.start,
     end: buildEndTime.value || props.event.end
   })
 
@@ -243,7 +311,7 @@ const saveChanges = async () => {
     id: props.event.id,
     title: changes.value.title,
     description: changes.value.description,
-    start: props.event.start,
+    start: buildStartTime.value || props.event.start,
     end: buildEndTime.value || props.event.end
   }
 
@@ -307,14 +375,41 @@ const saveChanges = async () => {
           </div>
           <div v-else class="flex flex-col justify-start items-start gap-2 w-full">
             <div class="flex flex-col justify-start items-start gap-2">
-              <div class="flex flex-row justify-start items-start border-l-2 border-gray-300 pl-2 gap-2">
-                <span class="text-xs text-[#71717A]">
-                  {{ getEventDayName(event.start) }}, {{ getEventDay(event.start) }} {{ getEventMonth(event.start) }} ⋅
-                  {{ formatDate(event.start, 'HH:mm') }}
+              <div class="flex flex-row justify-start items-start border-l-2 pl-2 gap-2" :class="startBorderClass">
+                <span class="text-xs flex flex-row justify-start items-center gap-2 text-[#71717A]">
+                  <span class="text-xs" v-if="safeStartDate">
+                    {{ getEventDayName(safeStartDate) }}
+                  </span>
+                  <span class="text-xs" v-else>⋅⋅⋅⋅⋅⋅⋅⋅</span>
+
+                  <input type="text" inputmode="numeric" pattern="\d*"
+                    class="text-xs text-[#71717A] border-b h-4 text-center border-gray-300 outline-none focus:outline-none focus:border-gray-500 w-5"
+                    :value="startDayChanges.day" maxlength="2" @input="(e) => {
+                      let val = (e.target as HTMLInputElement).value.replace(/\D/g, '')
+                      if (val.length > 2) val = val.slice(0, 2)
+                      let num = parseInt(val)
+                      if (isNaN(num)) return handleStartInput('day', '')
+                      const max = safeMaxStartDay
+                      if (num < 1) num = 1
+                      if (num > max) num = max
+                      handleStartInput('day', num.toString())
+                    }" />
+
+                  <input type="month"
+                    class="text-xs text-[#71717A] h-4 border-b text-center border-gray-300 outline-none focus:outline-none focus:border-gray-500 w-30"
+                    :value="`${startDayChanges.year}-${startDayChanges.month}`" @input="(e) => {
+                      const [year, month] = (e.target as HTMLInputElement).value.split('-')
+                      handleStartInput('month', month)
+                      startDayChanges.year = year
+                    }" />
+
+                  <input type="time"
+                    class="text-xs text-[#71717A] h-4 border-b text-center border-gray-300 outline-none focus:outline-none focus:border-gray-500 w-full"
+                    :value="startDayChanges.time"
+                    @input="(e) => handleStartInput('time', (e.target as HTMLInputElement).value)" />
                 </span>
               </div>
-              <div class="flex flex-row justify-start items-start border-l-2 pl-2 gap-2"
-                :class="{ 'border-gray-300': validEndTime, 'border-red-500': !validEndTime }">
+              <div class="flex flex-row justify-start items-start border-l-2 pl-2 gap-2" :class="endBorderClass">
                 <span class="text-xs flex flex-row justify-start items-center gap-2 text-[#71717A]">
                   <span class="text-xs" v-if="safeEndDate">
                     {{ getEventDayName(safeEndDate) }}
@@ -350,7 +445,7 @@ const saveChanges = async () => {
             </div>
           </div>
           <div class="mt-2 flex flex-row gap-2" :class="{ 'items-start': isEditMode, 'items-center': !isEditMode }">
-            <div class="flex flex-col justify-center items-center p-1">
+            <div class="flex flex-col h-full justify-start items-center p-1">
               <img src="@/assets/icons/text-icon.svg" alt="description icon" class="w-4 h-4" />
             </div>
             <span v-if="!isEditMode"
