@@ -365,22 +365,17 @@ const selectedEvent = ref<TimeEvent & { x: number; y: number } | null>(null)
   const container = bodyScrollContainer.value
   if (!ghost || !container) return
 
-  const containerRect = container.getBoundingClientRect()
   const startDate = new Date(ghost.start)
 
-  // 1. Find the day index
   const dayIndex = dateObjects.value.findIndex(d => isSameDay(d, startDate))
   if (dayIndex === -1) return
 
-  // 2. Compute vertical offset
   const startHour = startDate.getHours()
   const startMinutes = startDate.getMinutes()
   const topOffset = (startHour + startMinutes / 60) * 72
 
-  // 3. Compute horizontal offset
   const leftOffset = dayIndex * dayWidth.value
 
-  // 4. Determine popup X position (mimics highlightEvent)
   const popupWidth = 240
   const rightGap = 8
   const leftGap = 100
