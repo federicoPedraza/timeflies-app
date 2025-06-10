@@ -13,6 +13,7 @@ const props = defineProps<{
   isMultiDay: boolean
   eventIndex: number
   highlighted: boolean
+  isGhostEvent: boolean
 }>()
 
 const getEventTime = (event: TimeEvent) => {
@@ -28,7 +29,7 @@ const getEventTimeShort = (event: TimeEvent) => {
 }
 
 const emit = defineEmits<{
-  (e: 'click', event: MouseEvent): void
+  (e: 'click-event', eventId: string): void
   (e: 'resize:start', deltaMinutes: number): void
   (e: 'resize:end', deltaMinutes: number): void
 }>()
@@ -138,7 +139,7 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
     if (animationFrameId) cancelAnimationFrame(animationFrameId)
 
     if (!hasMoved) {
-      emit('click', e)
+      handleClick(e)
     } else if (resizeTarget === 'start') {
       const delta = (calendarStore.ghostEvent!.start.getTime() - originalStart.getTime()) / 1000 / 60
       emit('resize:start', delta)
@@ -156,9 +157,12 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
   window.addEventListener('mouseup', onMouseUp)
 }
 
-
 const handleClick = (e: MouseEvent) => {
-  emit('click', e)
+  // Ignore clicks on the discard button
+  console.log('handleClick', e)
+  if ((e.target as HTMLElement).closest('button')) return
+  e.stopPropagation()
+  emit('click-event', props.event.id)
 }
 
 const isShortEvent = computed(() => {
@@ -169,12 +173,18 @@ const isShortEvent = computed(() => {
 const isTooOverlapped = computed(() => {
   return props.overlappingEventsCount >= 3
 })
+
+const discardGhostEvent = (e: MouseEvent) => {
+  e.stopPropagation()
+  calendarStore.destroyGhostEvent()
+}
+
 </script>
 
 <template>
   <div
     class="calendar-event absolute border-l-[3px] rounded-[4px] p-1.5 overflow-hidden flex gap-0 hover:cursor-pointer transition-all duration-100 hover:shadow-xl z-20"
-    @click="handleClick" @mousedown.left="(e) => startGhostDrag(event)(e)" :style="{
+    @mousedown.left="(e) => startGhostDrag(event)(e)" :style="{
       width: highlighted ? '100%' : `${100 / overlappingEventsCount}%`,
       left: highlighted ? '0' : `${(100 / overlappingEventsCount) * eventIndex}%`
     }" :class="{
@@ -205,5 +215,13 @@ const isTooOverlapped = computed(() => {
         <span v-if="variant === 'edit'" class="text-xs text-[#0369A1]">{{ getEventTimeEnd(event) }}</span>
       </div>
     </template>
+
+    <!-- DISCARD BUTTON FOR GHOST EVENTS -->
+    <button v-if="variant === 'edit' && isGhostEvent"
+      class="absolute top-1 right-1 w-4 h-4 rounded-full bg-white hover:bg-white flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-100"
+      @click.stop="discardGhostEvent">
+      <img src="@/assets/icons/sidebar/close-icon.svg" alt="discard" class="w-3 h-3" />
+    </button>
+
   </div>
 </template>

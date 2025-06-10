@@ -18,6 +18,8 @@ const emit = defineEmits<{
 const eventStore = useEventStore()
 const calendarStore = useCalendarStore()
 
+const popupRef = ref<HTMLElement | null>(null)
+
 onMounted(() => {
   nextTick(() => {
     const popup = document.querySelector('.event-popup') as HTMLElement
@@ -38,6 +40,9 @@ onMounted(() => {
     } else if (isOutsideBottom) {
       calendarContainer.scrollTop += popupRect.bottom - containerRect.bottom + 20 // 20px padding
     }
+
+    // Focus the popup
+    popupRef.value?.focus()
   })
 })
 
@@ -373,8 +378,10 @@ const saveChanges = async () => {
 </script>
 
 <template>
-  <div class="absolute z-[1000] bg-white p-4 rounded-lg shadow-lg border border-gray-200 w-[360px] h-1/4 event-popup"
-    :style="{ left: `${event.x}px`, top: `${event.y}px` }">
+  <div ref="popupRef" class="absolute z-[1000] bg-white p-4 rounded-lg shadow-lg border border-gray-200 w-[360px] h-1/4 event-popup focus:outline-none"
+    :style="{ left: `${event.x}px`, top: `${event.y}px` }"
+    @keydown.escape="close"
+    tabindex="-1">
     <div class="flex flex-col justify-between items-start h-full gap-2">
       <div class="flex h-full flex-col gap-2  w-full justify-start items-start">
         <div class="flex justify-between w-full items-center">

@@ -333,15 +333,6 @@ onMounted(() => {
       scrollToHour(getStartingVisibleHour())
     }
   })
-  onMounted(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        closeEventPopup()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  })
 })
 
 const scrollToHour = (hour: number, highlightEventId: string | null = null) => {
@@ -349,7 +340,7 @@ const scrollToHour = (hour: number, highlightEventId: string | null = null) => {
   const elH = leftHourColumnRef.value
   const elR = rightHourColumnRef.value
   if (elB && elH && elR) {
-    const hourHeight = elH.scrollHeight / 24
+  const hourHeight = elH.scrollHeight / 24
     elB.scrollTop = hourHeight * (hour - 1)
     elH.scrollTop = hourHeight * (hour - 1)
     elR.scrollTop = hourHeight * (hour - 1)
@@ -360,6 +351,7 @@ const scrollToHour = (hour: number, highlightEventId: string | null = null) => {
 }
 
 const selectedEvent = ref<TimeEvent & { x: number; y: number } | null>(null)
+
   const highlightGhostEvent = () => {
   const ghost = calendarStore.ghostEvent
   const container = bodyScrollContainer.value
@@ -392,6 +384,7 @@ const selectedEvent = ref<TimeEvent & { x: number; y: number } | null>(null)
 
 
 const highlightEvent = async (eventId: string) => {
+  console.log('highlightEvent', eventId)
   const event = [...eventStore.events, calendarStore.ghostEvent].find(e => e?.id === eventId)
   if (!event) return
 
@@ -578,31 +571,32 @@ defineExpose({ scrollToHour, highlightEvent })
                     :highlighted="selectedEvent?.id === event.id"
                     :event="event"
                     :isMultiDay="isMultiDay(event)"
+                    :isGhostEvent="false"
                     :data-event-id="event.id"
                     :style="getEventStyle(event, date)"
                     :overlappingEventsCount="overlappingMeta.get(date.toDateString())?.get(event.id)?.count ?? 1"
                     :eventIndex="overlappingMeta.get(date.toDateString())?.get(event.id)?.index ?? 0"
-                    @click="() => highlightEvent(event.id)"
+                    @click-event="highlightEvent"
                     @resize:start="(minutes) => onResizeEvent(event, minutes, true)"
                     @resize:end="(minutes) => onResizeEvent(event, minutes, false)" />
                 </template>
                 <!-- GHOST EVENT -->
                 <CalendarEvent
-    v-show="shouldRenderGhostEvent(calendarStore.ghostEvent!, date, hour)"
-  v-if="calendarStore.ghostEvent"
-  variant="edit"
-  :event="calendarStore.ghostEvent"
-  :isMultiDay="isMultiDay(calendarStore.ghostEvent)"
-  :highlighted="selectedEvent?.id === calendarStore.ghostEvent?.id"
-  :data-event-id="calendarStore.ghostEvent?.id"
-  :style="getEventStyle(calendarStore.ghostEvent, date)"
-  :overlappingEventsCount="1"
-  :eventIndex="0"
-  @click="() => highlightGhostEvent()"
-  @resize:start="(minutes) => onResizeGhostEvent(minutes, true)"
-  @resize:end="(minutes) => onResizeGhostEvent(minutes, false)"
-/>
-
+                v-show="shouldRenderGhostEvent(calendarStore.ghostEvent!, date, hour)"
+                v-if="calendarStore.ghostEvent"
+                variant="edit"
+                :event="calendarStore.ghostEvent"
+                :isMultiDay="isMultiDay(calendarStore.ghostEvent)"
+                :highlighted="selectedEvent?.id === calendarStore.ghostEvent?.id"
+                :isGhostEvent="true"
+                :data-event-id="calendarStore.ghostEvent?.id"
+                :style="getEventStyle(calendarStore.ghostEvent, date)"
+                :overlappingEventsCount="1"
+                :eventIndex="0"
+                @click-event="highlightGhostEvent"
+                @resize:start="(minutes) => onResizeGhostEvent(minutes, true)"
+                @resize:end="(minutes) => onResizeGhostEvent(minutes, false)"
+              />
               </CalendarCell>
             </div>
           </div>
