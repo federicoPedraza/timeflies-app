@@ -450,7 +450,7 @@ defineExpose({ scrollToHour, highlightEvent })
     <!-- CENTER CALENDAR COLUMN -->
     <div class="flex flex-col" ref="calendarContainerRef">
       <!-- HEADER SCROLL AREA -->
-      <div ref="headerScrollContainer" class="overflow-x-auto scrollbar-none" :style="{ width: calendarWidth }">
+      <div ref="headerScrollContainer" class="overflow-x-hidden scrollbar-none" :style="{ width: calendarWidth }">
         <div class="flex w-max">
           <div v-for="(date, index) in dateObjects" :key="'head-' + date.toDateString()"
             :style="{ width: `${dayWidth}px` }">
@@ -560,7 +560,7 @@ defineExpose({ scrollToHour, highlightEvent })
     </div>
 
     <!-- RIGHT FIXED HOUR COLUMN -->
-    <div class="relative w-24  z-10 overflow-hidden"
+    <div class="relative w-24 z-10 overflow-hidden scrollbar-none"
       style="mask-image: linear-gradient(to bottom, transparent 0px, black 64px); -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 64px);">
       <div ref="rightHourColumnRef" class="flex flex-col overflow-y-auto h-full scrollbar-none">
         <div class="h-[64px] shrink-0"></div>
