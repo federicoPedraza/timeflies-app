@@ -3,12 +3,39 @@ import Sidebar from './Sidebar.vue'
 import Calendar from './Calendar.vue'
 import { useEventStore } from '@/stores/events'
 import { onMounted, onUnmounted } from 'vue'
+import { useCalendarStore } from '@/stores/calendar'
+import { getStartOfMonth, getEndOfMonth } from '@/utils/dates/date-formatter'
+import { useRoute } from 'vue-router'
+
 const eventStore = useEventStore()
+const calendarStore = useCalendarStore()
+
+const parseMonthQuery = (month: string) => {
+  const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
+  const monthIndex = months.indexOf(month.toLowerCase())
+  if (monthIndex === -1) return null
+
+  const date = new Date()
+  date.setMonth(monthIndex)
+  return date
+}
 
 onMounted(() => {
-  eventStore.fetchEvents()
+  // get current month from query
+  const route = useRoute()
+  const month = route.query.month as string
+
+  if (month) {
+    const parsedDate = parseMonthQuery(month)
+    if (parsedDate) {
+      calendarStore.setVisibleMonth(parsedDate)
+    }
+  }
+
+  eventStore.fetchEvents(getStartOfMonth(calendarStore.visibleMonth), getEndOfMonth(calendarStore.visibleMonth))
+
   intervalId = setInterval(() => {
-    eventStore.fetchEvents()
+    eventStore.fetchEvents(getStartOfMonth(calendarStore.visibleMonth), getEndOfMonth(calendarStore.visibleMonth))
   }, 60_000) // every 60 seconds
 })
 

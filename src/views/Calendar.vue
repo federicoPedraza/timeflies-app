@@ -282,8 +282,12 @@ onMounted(() => {
   currentWeekStart.value = startOfWeek(calendarStore.today, { weekStartsOn: startsWithSunday ? 0 : 1 })
   dateObjects.value = generateMonthRange(calendarStore.visibleMonth)
   requestAnimationFrame(() => {
-    scrollToToday(-1) // we do -1 because we want to see at least the past day
-    scrollToHour(getStartingVisibleHour())
+    if (calendarStore.lastFocusedDate) {
+      scrollToDay(dateObjects.value.findIndex(d => isSameDay(d, calendarStore.lastFocusedDate!)))
+    } else {
+      scrollToToday(-1) // we do -1 because we want to see at least the past day
+      scrollToHour(getStartingVisibleHour())
+    }
   })
   onMounted(() => {
     const onKeyDown = (e: KeyboardEvent) => {

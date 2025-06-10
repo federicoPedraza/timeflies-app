@@ -5,9 +5,11 @@ import { computed } from 'vue';
 import { useEventStore } from '@/stores/events';
 import { getStartOfMonth } from '@/utils/dates/date-formatter.ts';
 import { getEndOfMonth } from '@/utils/dates/date-formatter.ts';
+import { useRouter } from 'vue-router'
 
 const calendarStore = useCalendarStore()
 const eventStore = useEventStore()
+const router = useRouter()
 
 const props = defineProps<{
     month: Date
@@ -19,6 +21,11 @@ const handlePreviousMonth = async () => {
 
     // fetch events for the new month
     await eventStore.fetchEvents(getStartOfMonth(calendarStore.visibleMonth), getEndOfMonth(calendarStore.visibleMonth))
+
+    // update query params
+    router.push({ query: { month: format(calendarStore.visibleMonth, 'MMMM').toLowerCase() } })
+
+    calendarStore.destroyGhostEvent()
 }
 
 const handleNextMonth = async () => {
@@ -27,6 +34,11 @@ const handleNextMonth = async () => {
 
     // fetch events for the new month
     await eventStore.fetchEvents(getStartOfMonth(calendarStore.visibleMonth), getEndOfMonth(calendarStore.visibleMonth))
+
+    // update query params
+    router.push({ query: { month: format(calendarStore.visibleMonth, 'MMMM').toLowerCase() } })
+
+    calendarStore.destroyGhostEvent()
 }
 
 const handleResetView = async () => {
@@ -34,6 +46,11 @@ const handleResetView = async () => {
 
     // fetch events for the new month
     await eventStore.fetchEvents(getStartOfMonth(calendarStore.visibleMonth), getEndOfMonth(calendarStore.visibleMonth))
+
+    // update query params
+    router.push({ query: { month: format(calendarStore.visibleMonth, 'MMMM').toLowerCase() } })
+
+    calendarStore.destroyGhostEvent()
 }
 
 const shouldShowResetView = computed(() => !isSameMonth(calendarStore.visibleMonth, calendarStore.today))

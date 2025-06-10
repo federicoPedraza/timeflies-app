@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted  } from 'vue';
 import { useCalendarStore } from '@/stores/calendar'
 import {
   startOfMonth,
@@ -11,8 +11,10 @@ import {
   format,
   isSameDay
 } from 'date-fns'
+import { useRouter } from 'vue-router'
 
 const calendarStore = useCalendarStore()
+const router = useRouter()
 
 const dayNames = calendarStore.getDayNamesInOrder()
 
@@ -49,12 +51,37 @@ watch(() => calendarStore.visibleMonth, (newMonth) => {
 })
 
 const handleDateClick = (date: Date) => {
+  focusDate(date)
+
+  // update query params
+  const currentQuery = { ...router.currentRoute.value.query }
+  router.push({
+    query: {
+      ...currentQuery,
+      date: format(date, 'yyyy-MM-dd')
+    }
+  })
+}
+
+const focusDate = (date: Date) => {
   const isOutsideMonth = !isSameMonth(date, calendarStore.visibleMonth)
   if (isOutsideMonth) {
     calendarStore.visibleMonth = date
   }
+
   calendarStore.lastFocusedDate = date
 }
+
+onMounted(() => {
+  // get date from query params
+  const date = router.currentRoute.value.query.date as string
+  if (date) {
+    // Parse date and set to local timezone
+    const [year, month, day] = date.split('-').map(Number)
+    const localDate = new Date(year, month - 1, day)
+    focusDate(localDate)
+  }
+})
 
 </script>
 
