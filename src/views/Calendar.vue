@@ -300,20 +300,52 @@ onMounted(() => {
   })
 })
 
-const scrollToHour = (hour: number) => {
-  const startingHour = getStartingVisibleHour()
+const scrollToHour = (hour: number, highlightEventId: string | null = null) => {
   const elB = bodyScrollContainer.value
   const elH = leftHourColumnRef.value
   const elR = rightHourColumnRef.value
   if (elB && elH && elR) {
     const hourHeight = elH.scrollHeight / 24
-    elB.scrollTop = hourHeight * (startingHour - 1)
-    elH.scrollTop = hourHeight * (startingHour - 1)
-    elR.scrollTop = hourHeight * (startingHour - 1)
+    elB.scrollTop = hourHeight * (hour - 1)
+    elH.scrollTop = hourHeight * (hour - 1)
+    elR.scrollTop = hourHeight * (hour - 1)
+    if (highlightEventId) {
+      highlightEvent(highlightEventId)
+    }
   }
 }
 
 const selectedEvent = ref<TimeEvent & { x: number; y: number } | null>(null)
+const highlightedEventId = ref<string | null>(null)
+
+const highlightEvent = (eventId: string) => {
+  const event = eventStore.events.find(e => e.id === eventId)
+  if (!event) return
+
+  const container = bodyScrollContainer.value
+  if (!container) return
+
+  const eventElement = container.querySelector(`[data-event-id="${eventId}"]`) as HTMLElement
+  if (!eventElement) return
+
+  const containerRect = container.getBoundingClientRect()
+  const eventRect = eventElement.getBoundingClientRect()
+
+  const popupWidth = 240
+  const rightGap = 8
+  const leftGap = 100
+
+  const rightX = eventRect.right - containerRect.left + container.scrollLeft + rightGap
+  const leftX = eventRect.left - containerRect.left + container.scrollLeft - popupWidth - leftGap
+
+  const fitsOnRight = rightX + popupWidth < container.scrollLeft + container.clientWidth
+
+  selectedEvent.value = {
+    ...event,
+    x: fitsOnRight ? rightX : Math.max(leftX, 0),
+    y: eventRect.top - containerRect.top + container.scrollTop
+  }
+}
 
 const closeEventPopup = () => {
   selectedEvent.value = null
@@ -397,6 +429,8 @@ const onCellClick = (date: Date, hour: number, e: MouseEvent) => {
   start.setHours(hour, minutes, 0, 0)
   calendarStore.createGhostEvent(start)
 }
+
+defineExpose({ scrollToHour, highlightEvent })
 </script>
 
 <template>
@@ -435,7 +469,7 @@ const onCellClick = (date: Date, hour: number, e: MouseEvent) => {
       </div>
 
       <!-- BODY SCROLL AREA -->
-      <div ref="bodyScrollContainer" class="overflow-x-auto overflow-y-auto"
+      <div ref="bodyScrollContainer" class="overflow-x-auto overflow-y-auto calendar-body-scroll"
         :style="{ height: 'calc(100vh - 72px)', width: calendarWidth }">
         <div class="w-max relative">
           <div v-for="hour in hours" :key="'row-' + hour" class="flex h-[72px]">
@@ -464,33 +498,13 @@ const onCellClick = (date: Date, hour: number, e: MouseEvent) => {
                 </template>
                 <!-- EVENTS -->
                 <CalendarEvent variant="default" v-for="(event) in getEventsForCell(date, hour)" :key="event.id"
-                  :event="event" :style="calendarStore.ghostEvent?.id === event.id ? { display: 'none' } : getEventStyle(event)"
+                  :event="event"
+                  :data-event-id="event.id"
+                  :style="calendarStore.ghostEvent?.id === event.id ? { display: 'none' } : getEventStyle(event)"
                   :overlappingEventsCount="overlappingMeta.get(date.toDateString())?.get(event.id)?.count ?? 1"
                   :eventIndex="overlappingMeta.get(date.toDateString())?.get(event.id)?.index ?? 0"
-                  @click="(e: MouseEvent) => {
-                    const container = bodyScrollContainer
-                    const targetEl = e.currentTarget as HTMLElement
-
-                    if (container && targetEl) {
-                      const containerRect = container.getBoundingClientRect()
-                      const eventRect = targetEl.getBoundingClientRect()
-
-                      const popupWidth = 240
-                      const rightGap = 8
-                      const leftGap = 100
-
-                      const rightX = eventRect.right - containerRect.left + container.scrollLeft + rightGap
-                      const leftX = eventRect.left - containerRect.left + container.scrollLeft - popupWidth - leftGap
-
-                      const fitsOnRight = rightX + popupWidth < container.scrollLeft + container.clientWidth
-
-                      selectedEvent = {
-                        ...event,
-                        x: fitsOnRight ? rightX : Math.max(leftX, 0),
-                        y: eventRect.top - containerRect.top + container.scrollTop
-                      }
-                    }
-                  }" @resize:start="(minutes) => {
+                  @click="() => highlightEvent(event.id)"
+                  @resize:start="(minutes) => {
                     onResizeEvent(event, minutes, true)
                   }" @resize:end="(minutes) => {
                     onResizeEvent(event, minutes, false)

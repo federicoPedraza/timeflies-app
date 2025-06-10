@@ -2,7 +2,7 @@
 import Sidebar from './Sidebar.vue'
 import Calendar from './Calendar.vue'
 import { useEventStore } from '@/stores/events'
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useCalendarStore } from '@/stores/calendar'
 import { getStartOfMonth, getEndOfMonth } from '@/utils/dates/date-formatter'
 import { useRoute } from 'vue-router'
@@ -30,6 +30,8 @@ const parseMonthQuery = (month: string) => {
   date.setMonth(monthIndex)
   return date
 }
+
+const calendarRef = ref()
 
 onMounted(() => {
   // get current month from query
@@ -61,8 +63,8 @@ onUnmounted(() => {
 
 <template>
   <div class="main">
-    <Sidebar />
-    <Calendar />
+    <Sidebar v-model:calendar-ref="calendarRef" />
+    <Calendar ref="calendarRef" />
   </div>
 </template>
 

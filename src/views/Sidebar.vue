@@ -2,16 +2,24 @@
 import SidebarHeaderButton from '@/components/sidebar/SidebarHeaderButton.vue';
 import SidebarMonth from '@/components/sidebar/SidebarMonth.vue';
 import SidebarCalendar from '@/components/sidebar/SidebarCalendar.vue';
+import SidebarSummary from '@/components/sidebar/SidebarSummary.vue';
 import ConfigModal from '@/components/modals/ConfigModal.vue';
 import { useCalendarStore } from '@/stores/calendar';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
 import { ref } from 'vue';
+import Calendar from './Calendar.vue';
 
 const router = useRouter()
 const calendarStore = useCalendarStore()
 const authStore = useAuthStore()
 const configModal = ref(false)
+
+const calendarRef = defineModel<InstanceType<typeof Calendar>>('calendarRef')
+
+const handleScrollToHour = (hour: number, highlightEventId: string | null = null) => {
+  calendarRef.value?.scrollToHour(hour, highlightEventId)
+}
 
 const handleSettingsClick = () => {
   configModal.value = true
@@ -40,6 +48,7 @@ const handleMoreClick = () => {
     </div>
     <SidebarMonth :month="calendarStore.visibleMonth" />
     <SidebarCalendar />
+    <SidebarSummary @scroll-to-hour="handleScrollToHour" />
+    <ConfigModal v-if="configModal" @close="configModal = false" />
   </div>
-  <ConfigModal v-if="configModal" @close="configModal = false" />
 </template>

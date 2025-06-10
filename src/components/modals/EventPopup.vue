@@ -2,7 +2,7 @@
 import { useCalendarStore } from '@/stores/calendar';
 import { useEventStore, type TimeEvent } from '@/stores/events'
 import { differenceInCalendarDays, differenceInMinutes, formatDate, isToday, isBefore, isAfter, isWithinInterval, formatDistanceToNow, parseISO, getDaysInMonth } from 'date-fns';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, onMounted } from 'vue';
 
 const props = defineProps<{
   event: TimeEvent & { x: number; y: number },
@@ -17,6 +17,29 @@ const emit = defineEmits<{
 
 const eventStore = useEventStore()
 const calendarStore = useCalendarStore()
+
+onMounted(() => {
+  nextTick(() => {
+    const popup = document.querySelector('.event-popup') as HTMLElement
+    if (!popup) return
+
+    const calendarContainer = document.querySelector('.calendar-body-scroll') as HTMLElement
+    if (!calendarContainer) return
+
+    const popupRect = popup.getBoundingClientRect()
+    const containerRect = calendarContainer.getBoundingClientRect()
+
+    // Calculate if popup is outside the visible area
+    const isOutsideTop = popupRect.top < containerRect.top
+    const isOutsideBottom = popupRect.bottom > containerRect.bottom
+
+    if (isOutsideTop) {
+      calendarContainer.scrollTop += popupRect.top - containerRect.top - 20 // 20px padding
+    } else if (isOutsideBottom) {
+      calendarContainer.scrollTop += popupRect.bottom - containerRect.bottom + 20 // 20px padding
+    }
+  })
+})
 
 const getEventDayName = (date: Date) => {
   return formatDate(date, 'EEEE')
@@ -350,7 +373,7 @@ const saveChanges = async () => {
 </script>
 
 <template>
-  <div class="absolute z-[1000] bg-white p-4 rounded-lg shadow-lg border border-gray-200 w-[360px] h-1/4"
+  <div class="absolute z-[1000] bg-white p-4 rounded-lg shadow-lg border border-gray-200 w-[360px] h-1/4 event-popup"
     :style="{ left: `${event.x}px`, top: `${event.y}px` }">
     <div class="flex flex-col justify-between items-start h-full gap-2">
       <div class="flex h-full flex-col gap-2  w-full justify-start items-start">
