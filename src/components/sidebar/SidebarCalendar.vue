@@ -12,8 +12,11 @@ import {
   isSameDay
 } from 'date-fns'
 import { useRouter } from 'vue-router'
+import { useEventStore } from '@/stores/events'
 
 const calendarStore = useCalendarStore()
+const eventStore = useEventStore()
+
 const router = useRouter()
 
 const dayNames = calendarStore.getDayNamesInOrder()
@@ -113,7 +116,7 @@ onMounted(() => {
             <span class="font-semibold text-[11px]">
               {{ format(date, 'd') }}
             </span>
-            <div v-if="false" class="w-1 h-1 rounded-full" :class="!isToday(date) ? 'bg-[#3B82F6]' : 'bg-white'"></div>
+            <div v-if="eventStore.events.some(e => isSameDay(e.start, date))" class="w-1 h-1 rounded-full" :class="!isToday(date) ? 'bg-[#3B82F6]' : 'bg-white'"></div>
           </button>
         </td>
       </tr>
