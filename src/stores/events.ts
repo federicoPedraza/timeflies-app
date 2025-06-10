@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useAuthStore } from './auth.ts'
 import { useCalendarStore } from './calendar.ts'
+import { getStartOfMonth } from '@/utils/dates/date-formatter.ts'
+import { getEndOfMonth } from '@/utils/dates/date-formatter.ts'
 
 const API = import.meta.env.VITE_API_BASE_URL
 
@@ -17,9 +19,15 @@ export const useEventStore = defineStore('events', () => {
   const events = ref<TimeEvent[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
-  const calendarStore = useCalendarStore()
 
-  async function fetchEvents() {
+  async function fetchEvents(start?: Date, end?: Date) {
+    if (!start) {
+      start = getStartOfMonth(new Date())
+    }
+    if (!end) {
+      end = getEndOfMonth(new Date())
+    }
+
     loading.value = true
     error.value = null
 
@@ -33,7 +41,7 @@ export const useEventStore = defineStore('events', () => {
     }
 
     try {
-      const res = await fetch(`${API}/v1/calendar/events`, {
+      const res = await fetch(`${API}/v1/calendar/events?start=${start.toISOString()}&end=${end.toISOString()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`

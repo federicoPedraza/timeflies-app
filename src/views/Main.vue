@@ -2,11 +2,20 @@
 import Sidebar from './Sidebar.vue'
 import Calendar from './Calendar.vue'
 import { useEventStore } from '@/stores/events'
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 const eventStore = useEventStore()
 
 onMounted(() => {
   eventStore.fetchEvents()
+  intervalId = setInterval(() => {
+    eventStore.fetchEvents()
+  }, 60_000) // every 60 seconds
+})
+
+let intervalId: ReturnType<typeof setInterval>
+
+onUnmounted(() => {
+  clearInterval(intervalId)
 })
 </script>
 

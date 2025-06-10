@@ -2,25 +2,38 @@
 import { format, subMonths, addMonths, isSameMonth } from 'date-fns';
 import { useCalendarStore } from '@/stores/calendar';
 import { computed } from 'vue';
+import { useEventStore } from '@/stores/events';
+import { getStartOfMonth } from '@/utils/dates/date-formatter.ts';
+import { getEndOfMonth } from '@/utils/dates/date-formatter.ts';
 
 const calendarStore = useCalendarStore()
+const eventStore = useEventStore()
 
 const props = defineProps<{
     month: Date
 }>()
 
-const handlePreviousMonth = () => {
+const handlePreviousMonth = async () => {
     calendarStore.setVisibleMonth(subMonths(props.month, 1))
     calendarStore.lastFocusedDate = null
+
+    // fetch events for the new month
+    await eventStore.fetchEvents(getStartOfMonth(calendarStore.visibleMonth), getEndOfMonth(calendarStore.visibleMonth))
 }
 
-const handleNextMonth = () => {
+const handleNextMonth = async () => {
     calendarStore.setVisibleMonth(addMonths(props.month, 1))
     calendarStore.lastFocusedDate = null
+
+    // fetch events for the new month
+    await eventStore.fetchEvents(getStartOfMonth(calendarStore.visibleMonth), getEndOfMonth(calendarStore.visibleMonth))
 }
 
-const handleResetView = () => {
+const handleResetView = async () => {
     calendarStore.setVisibleMonth(calendarStore.today)
+
+    // fetch events for the new month
+    await eventStore.fetchEvents(getStartOfMonth(calendarStore.visibleMonth), getEndOfMonth(calendarStore.visibleMonth))
 }
 
 const shouldShowResetView = computed(() => !isSameMonth(calendarStore.visibleMonth, calendarStore.today))
