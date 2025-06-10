@@ -6,9 +6,20 @@ import { onMounted, onUnmounted } from 'vue'
 import { useCalendarStore } from '@/stores/calendar'
 import { getStartOfMonth, getEndOfMonth } from '@/utils/dates/date-formatter'
 import { useRoute } from 'vue-router'
+import { startOfWeek, endOfWeek } from 'date-fns'
 
 const eventStore = useEventStore()
 const calendarStore = useCalendarStore()
+
+const getVisibleDateRange = () => {
+  const monthStart = getStartOfMonth(calendarStore.visibleMonth)
+  const monthEnd = getEndOfMonth(calendarStore.visibleMonth)
+
+  return {
+    start: startOfWeek(monthStart, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 }),
+    end: endOfWeek(monthEnd, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 })
+  }
+}
 
 const parseMonthQuery = (month: string) => {
   const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
@@ -32,10 +43,12 @@ onMounted(() => {
     }
   }
 
-  eventStore.fetchEvents(getStartOfMonth(calendarStore.visibleMonth), getEndOfMonth(calendarStore.visibleMonth))
+  const { start, end } = getVisibleDateRange()
+  eventStore.fetchEvents(start, end)
 
   intervalId = setInterval(() => {
-    eventStore.fetchEvents(getStartOfMonth(calendarStore.visibleMonth), getEndOfMonth(calendarStore.visibleMonth))
+    const { start, end } = getVisibleDateRange()
+    eventStore.fetchEvents(start, end)
   }, 60_000) // every 60 seconds
 })
 

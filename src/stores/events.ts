@@ -4,6 +4,7 @@ import { useAuthStore } from './auth.ts'
 import { useCalendarStore } from './calendar.ts'
 import { getStartOfMonth } from '@/utils/dates/date-formatter.ts'
 import { getEndOfMonth } from '@/utils/dates/date-formatter.ts'
+import { startOfWeek, endOfWeek } from 'date-fns'
 
 const API = import.meta.env.VITE_API_BASE_URL
 
@@ -21,11 +22,14 @@ export const useEventStore = defineStore('events', () => {
   const error = ref<string | null>(null)
 
   async function fetchEvents(start?: Date, end?: Date) {
-    if (!start) {
-      start = getStartOfMonth(new Date())
-    }
-    if (!end) {
-      end = getEndOfMonth(new Date())
+    const calendarStore = useCalendarStore()
+
+    if (!start || !end) {
+      const monthStart = getStartOfMonth(calendarStore.visibleMonth)
+      const monthEnd = getEndOfMonth(calendarStore.visibleMonth)
+
+      start = startOfWeek(monthStart, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 })
+      end = endOfWeek(monthEnd, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 })
     }
 
     loading.value = true

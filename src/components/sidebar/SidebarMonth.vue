@@ -6,10 +6,21 @@ import { useEventStore } from '@/stores/events';
 import { getStartOfMonth } from '@/utils/dates/date-formatter.ts';
 import { getEndOfMonth } from '@/utils/dates/date-formatter.ts';
 import { useRouter } from 'vue-router'
+import { startOfWeek, endOfWeek } from 'date-fns'
 
 const calendarStore = useCalendarStore()
 const eventStore = useEventStore()
 const router = useRouter()
+
+const getVisibleDateRange = () => {
+  const monthStart = getStartOfMonth(calendarStore.visibleMonth)
+  const monthEnd = getEndOfMonth(calendarStore.visibleMonth)
+
+  return {
+    start: startOfWeek(monthStart, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 }),
+    end: endOfWeek(monthEnd, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 })
+  }
+}
 
 const props = defineProps<{
     month: Date
@@ -20,7 +31,8 @@ const handlePreviousMonth = async () => {
     calendarStore.lastFocusedDate = null
 
     // fetch events for the new month
-    await eventStore.fetchEvents(getStartOfMonth(calendarStore.visibleMonth), getEndOfMonth(calendarStore.visibleMonth))
+    const { start, end } = getVisibleDateRange()
+    await eventStore.fetchEvents(start, end)
 
     // update query params
     router.push({ query: { month: format(calendarStore.visibleMonth, 'MMMM').toLowerCase() } })
@@ -33,7 +45,8 @@ const handleNextMonth = async () => {
     calendarStore.lastFocusedDate = null
 
     // fetch events for the new month
-    await eventStore.fetchEvents(getStartOfMonth(calendarStore.visibleMonth), getEndOfMonth(calendarStore.visibleMonth))
+    const { start, end } = getVisibleDateRange()
+    await eventStore.fetchEvents(start, end)
 
     // update query params
     router.push({ query: { month: format(calendarStore.visibleMonth, 'MMMM').toLowerCase() } })
@@ -45,7 +58,8 @@ const handleResetView = async () => {
     calendarStore.setVisibleMonth(calendarStore.today)
 
     // fetch events for the new month
-    await eventStore.fetchEvents(getStartOfMonth(calendarStore.visibleMonth), getEndOfMonth(calendarStore.visibleMonth))
+    const { start, end } = getVisibleDateRange()
+    await eventStore.fetchEvents(start, end)
 
     // update query params
     router.push({ query: { month: format(calendarStore.visibleMonth, 'MMMM').toLowerCase() } })
