@@ -189,7 +189,7 @@ watch(signUpMode, () => {
 })
 
 onMounted(() => {
-    if (auth.token) {
+    if (auth.accessToken) {
         router.push('/')
         return
     }

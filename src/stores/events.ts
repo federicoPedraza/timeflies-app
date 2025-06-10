@@ -36,7 +36,7 @@ export const useEventStore = defineStore('events', () => {
     error.value = null
 
     const authStore = useAuthStore()
-    const token = authStore.token || localStorage.getItem('token')
+    const token = authStore.accessToken || localStorage.getItem('accessToken')
 
     if (!token) {
       error.value = 'Missing token'
@@ -69,7 +69,7 @@ export const useEventStore = defineStore('events', () => {
 
   async function modifyEvent(event: Partial<TimeEvent>) {
     const authStore = useAuthStore()
-    const token = authStore.token || localStorage.getItem('token')
+    const token = authStore.accessToken || localStorage.getItem('accessToken')
 
     if (!event.id) {
       error.value = 'Event ID is required'
@@ -108,7 +108,7 @@ export const useEventStore = defineStore('events', () => {
 
   async function createEvent(event: Partial<TimeEvent>) {
     const authStore = useAuthStore()
-    const token = authStore.token || localStorage.getItem('token')
+    const token = authStore.accessToken || localStorage.getItem('accessToken')
 
     if (!event.title) {
       error.value = 'Event title is required'
@@ -143,7 +143,7 @@ export const useEventStore = defineStore('events', () => {
 
   async function deleteEvent(eventId: string) {
     const authStore = useAuthStore()
-    const token = authStore.token || localStorage.getItem('token')
+    const token = authStore.accessToken || localStorage.getItem('accessToken')
 
     try {
       const res = await fetch(`${API}/v1/calendar/delete/${eventId}`, {

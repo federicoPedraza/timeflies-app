@@ -1,3 +1,10 @@
+<script setup lang="ts">
+import { useTokenRefresh } from '@/composables/useTokenRefresh'
+
+// Initialize token refresh
+useTokenRefresh()
+</script>
+
 <template>
   <main>
     <router-view />

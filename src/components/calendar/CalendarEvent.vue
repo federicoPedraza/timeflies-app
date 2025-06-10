@@ -180,7 +180,7 @@ const isTooOverlapped = computed(() => {
       'flex-row items-center gap-2': isShortEvent,
       'flex-col justify-start items-start gap-0.5': !isShortEvent,
       'border-solid border-[#0EA5E9] bg-[#0EA5E91A]': variant === 'default',
-      'border-dashed border-2 border-[#3bb1e8] bg-[#3bb1e826]': variant === 'edit'
+      'border-dashed border-2 border-[#3bb1e8] bg-[#D3F5FF]': variant === 'edit'
     }">
 
     <!-- TOP RESIZE HANDLE -->

@@ -7,7 +7,8 @@ const API = import.meta.env.VITE_API_BASE_URL
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null as null | { email: string, name: string, id: string },
-        token: null as null | string,
+        accessToken: null as null | string,
+        refreshToken: null as null | string,
         loading: false,
     }),
     actions: {
@@ -31,11 +32,12 @@ export const useAuthStore = defineStore('auth', {
             throw new Error('An error occurred, please try again later')
         }
 
-        const token = response.data.token
-        this.token = token
-        localStorage.setItem('token', token)
+        this.accessToken = response.data.accessToken
+        localStorage.setItem('accessToken', response.data.accessToken)
+        this.refreshToken = response.data.refreshToken
+        localStorage.setItem('refreshToken', response.data.refreshToken)
 
-        const decoded = jwtDecode<{ id: string, email: string, name: string }>(token);
+        const decoded = jwtDecode<{ id: string, email: string, name: string }>(this.accessToken as string);
         this.user = { id: decoded.id, email: decoded.email, name: decoded.name}
         this.persistToken()
     },
@@ -54,11 +56,12 @@ export const useAuthStore = defineStore('auth', {
             throw new Error('Failed to sign up')
 
         const response = await res.json()
-        const token = response.data.token
-        this.token = token
-        localStorage.setItem('token', token)
+        this.accessToken = response.data.accessToken
+        localStorage.setItem('accessToken', response.data.accessToken)
+        this.refreshToken = response.data.refreshToken
+        localStorage.setItem('refreshToken', response.data.refreshToken)
 
-        const decoded = jwtDecode<{ id: string, email: string, name: string }>(token);
+        const decoded = jwtDecode<{ id: string, email: string, name: string }>(this.accessToken as string);
         this.user = { id: decoded.id, email: decoded.email, name: decoded.name}
         this.persistToken()
     },
@@ -76,12 +79,14 @@ export const useAuthStore = defineStore('auth', {
     },
     async logout() {
         this.user = null
-        this.token = null
-        localStorage.removeItem('token')
+        this.accessToken = null
+        localStorage.removeItem('accessToken')
+        this.refreshToken = null
+        localStorage.removeItem('refreshToken')
         this.persistToken()
     },
     async deleteAccount() {
-        if (!this.token)
+        if (!this.accessToken)
             throw new Error('No token found')
 
         const res = await fetch(`${API}/v1/users/me`, {
@@ -89,7 +94,7 @@ export const useAuthStore = defineStore('auth', {
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.token}`,
+                'Authorization': `Bearer ${this.accessToken}`,
             },
         })
         if (!res.ok)
@@ -97,14 +102,41 @@ export const useAuthStore = defineStore('auth', {
         this.logout()
         router.push('/auth?signup=true')
     },
-    persistToken() {
-        const token = localStorage.getItem('token')
-        if (!token) return
+    async refreshAccessToken() {
+        if (!this.refreshToken)
+            throw new Error('No refresh token found')
 
-        this.token = token
+        const res = await fetch(`${API}/v1/users/refresh-token`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                refreshToken: this.refreshToken,
+            }),
+        })
+        const response = await res.json()
+        this.accessToken = response.data.accessToken
+        localStorage.setItem('accessToken', response.data.accessToken)
+        this.refreshToken = response.data.refreshToken
+        localStorage.setItem('refreshToken', response.data.refreshToken)
+
+        const decoded = jwtDecode<{ id: string, email: string, name: string }>(this.accessToken as string);
+        this.user = { id: decoded.id, email: decoded.email, name: decoded.name}
+        this.persistToken()
+
+        return this.accessToken
+    },
+    persistToken() {
+        const accessToken = localStorage.getItem('accessToken')
+        if (!accessToken) return
+
+        this.accessToken = accessToken
+        this.refreshToken = localStorage.getItem('refreshToken')
 
         try {
-            const decoded = jwtDecode<{ id: string, email: string, name: string }>(token)
+            const decoded = jwtDecode<{ id: string, email: string, name: string }>(accessToken as string)
             this.user = {
                 id: decoded.id,
                 email: decoded.email,
@@ -112,8 +144,10 @@ export const useAuthStore = defineStore('auth', {
             }
         } catch {
             this.user = null
-            this.token = null
-            localStorage.removeItem('token')
+            this.accessToken = null
+            localStorage.removeItem('accessToken')
+            this.refreshToken = null
+            localStorage.removeItem('refreshToken')
         }
     }
   },
