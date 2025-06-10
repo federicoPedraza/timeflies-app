@@ -10,12 +10,13 @@ const props = defineProps<{
   event: TimeEvent,
   variant: 'default' | 'edit',
   overlappingEventsCount: number
+  isMultiDay: boolean
   eventIndex: number
   highlighted: boolean
 }>()
 
 const getEventTime = (event: TimeEvent) => {
-  return format(event.start, 'HH:mm a')
+  return props.isMultiDay ? (format(event.start, 'MMM d') + ' ⋅ ' + format(event.start, ' HH:mm a')) : format(event.start, 'HH:mm')
 }
 
 const getEventTimeEnd = (event: TimeEvent) => {
@@ -75,7 +76,6 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
     if (moveEvent.shiftKey) {
       const snapToNearest15 = (date: Date) => {
         const minutes = date.getMinutes()
-        const hours = date.getHours()
         const snappedMinutes = Math.round(minutes / 15) * 15
         date.setMinutes(snappedMinutes)
         date.setSeconds(0)

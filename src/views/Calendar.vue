@@ -122,24 +122,68 @@ const scrollToDay = (dayIndex: number) => {
   }
 }
 const getEventsForCell = (date: Date, hour: number) => {
-  return eventStore.events.filter(event => {
+  const allEvents = [...eventStore.events]
+  if (calendarStore.ghostEvent) {
+    allEvents.push(calendarStore.ghostEvent)
+  }
+
+  const events = allEvents.filter(event => {
     const start = new Date(event.start)
-    return isSameDay(start, date) && start.getHours() === hour
+    const end = new Date(event.end)
+
+    const isSame = isSameDay(start, date)
+    const isContinued = !isSame && start < date && end > date
+
+    if (isContinued && hour === 0) return true
+    if (isSame && start.getHours() === hour) return true
+
+    return false
   })
+
+  return events
 }
 
-const getEventStyle = (event: TimeEvent) => {
+const getEventStyle = (event: TimeEvent, currentDate: Date) => {
   const start = new Date(event.start)
   const end = new Date(event.end)
-  const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60)
-  const topOffset = (start.getMinutes() / 60) * 72
-  const height = durationHours * 72
+
+  const isStartDay = isSameDay(start, currentDate)
+
+  const topOffset = isStartDay ? (start.getMinutes() / 60) * 72 : 0
+
+  let height: number
+
+  if (isStartDay) {
+    const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60)
+    height = Math.min(durationHours * 72, (24 - start.getHours() - (start.getMinutes() / 60)) * 72)
+  } else {
+    const midnight = new Date(currentDate)
+    midnight.setHours(0, 0, 0, 0)
+
+    const endTime = end < new Date(midnight.getTime() + 86400000) ? end : new Date(midnight.getTime() + 86400000)
+    const durationHours = (endTime.getTime() - midnight.getTime()) / (1000 * 60 * 60)
+    height = durationHours * 72
+  }
 
   return {
     top: `${topOffset}px`,
     height: `${height}px`,
     position: 'absolute'
   }
+}
+
+const shouldRenderGhostEvent = (ghost: TimeEvent, date: Date, hour: number) => {
+  const start = new Date(ghost.start)
+  const end = new Date(ghost.end)
+
+  const isStartDay = isSameDay(start, date)
+  const isContinuation = !isStartDay && (isSameDay(end, date) || (date > start && date < end))
+
+  return (isStartDay && start.getHours() === hour) || (isContinuation && hour === 0)
+}
+
+const isMultiDay = (event: TimeEvent) => {
+  return event.start.toDateString() !== event.end.toDateString()
 }
 
 const hasEventCrossingHalfHour = (date: Date, hour: number) => {
@@ -316,21 +360,53 @@ const scrollToHour = (hour: number, highlightEventId: string | null = null) => {
 }
 
 const selectedEvent = ref<TimeEvent & { x: number; y: number } | null>(null)
+  const highlightGhostEvent = () => {
+  const ghost = calendarStore.ghostEvent
+  const container = bodyScrollContainer.value
+  if (!ghost || !container) return
 
-const highlightGhostEvent = () => {
-  highlightEvent(calendarStore.ghostEvent?.id ?? '')
+  const containerRect = container.getBoundingClientRect()
+  const startDate = new Date(ghost.start)
+
+  // 1. Find the day index
+  const dayIndex = dateObjects.value.findIndex(d => isSameDay(d, startDate))
+  if (dayIndex === -1) return
+
+  // 2. Compute vertical offset
+  const startHour = startDate.getHours()
+  const startMinutes = startDate.getMinutes()
+  const topOffset = (startHour + startMinutes / 60) * 72
+
+  // 3. Compute horizontal offset
+  const leftOffset = dayIndex * dayWidth.value
+
+  // 4. Determine popup X position (mimics highlightEvent)
+  const popupWidth = 240
+  const rightGap = 8
+  const leftGap = 100
+  const rightX = leftOffset + dayWidth.value + rightGap
+  const leftX = leftOffset - popupWidth - leftGap
+  const fitsOnRight = rightX + popupWidth < container.scrollLeft + container.clientWidth
+
+  selectedEvent.value = {
+    ...ghost,
+    x: fitsOnRight ? rightX : Math.max(leftX, 0),
+    y: topOffset
+  }
 }
 
-const highlightEvent = (eventId: string) => {
+
+const highlightEvent = async (eventId: string) => {
   const event = [...eventStore.events, calendarStore.ghostEvent].find(e => e?.id === eventId)
   if (!event) return
+
+  await nextTick()
 
   const container = bodyScrollContainer.value
   if (!container) return
 
   const eventElement = container.querySelector(`[data-event-id="${eventId}"]`) as HTMLElement
-  if (!eventElement) return
-
+  if (!eventElement || eventElement.offsetParent === null) return
 
   const containerRect = container.getBoundingClientRect()
   const eventRect = eventElement.getBoundingClientRect()
@@ -431,7 +507,7 @@ const onCellClick = (date: Date, hour: number, e: MouseEvent) => {
 
   const start = new Date(date)
   start.setHours(hour, minutes, 0, 0)
-  calendarStore.createGhostEvent(start)
+  calendarStore.createGhostEvent(start, cellRect.left, cellRect.top)
 }
 
 defineExpose({ scrollToHour, highlightEvent })
@@ -501,31 +577,37 @@ defineExpose({ scrollToHour, highlightEvent })
                   </div>
                 </template>
                 <!-- EVENTS -->
-                <CalendarEvent variant="default" v-for="(event) in getEventsForCell(date, hour)" :key="event.id"
-                  :highlighted="selectedEvent?.id === event.id"
-                  :event="event"
-                  :data-event-id="event.id"
-                  :style="calendarStore.ghostEvent?.id === event.id ? { display: 'none' } : getEventStyle(event)"
-                  :overlappingEventsCount="overlappingMeta.get(date.toDateString())?.get(event.id)?.count ?? 1"
-                  :eventIndex="overlappingMeta.get(date.toDateString())?.get(event.id)?.index ?? 0"
-                  @click="() => highlightEvent(event.id)"
-                  @resize:start="(minutes) => {
-                    onResizeEvent(event, minutes, true)
-                  }" @resize:end="(minutes) => {
-                    onResizeEvent(event, minutes, false)
-                  }" />
+                <template v-for="(event) in getEventsForCell(date, hour)" :key="event.id">
+                  <CalendarEvent v-show="!calendarStore.ghostEvent || calendarStore.ghostEvent.id !== event.id"
+                    variant="default"
+                    :highlighted="selectedEvent?.id === event.id"
+                    :event="event"
+                    :isMultiDay="isMultiDay(event)"
+                    :data-event-id="event.id"
+                    :style="getEventStyle(event, date)"
+                    :overlappingEventsCount="overlappingMeta.get(date.toDateString())?.get(event.id)?.count ?? 1"
+                    :eventIndex="overlappingMeta.get(date.toDateString())?.get(event.id)?.index ?? 0"
+                    @click="() => highlightEvent(event.id)"
+                    @resize:start="(minutes) => onResizeEvent(event, minutes, true)"
+                    @resize:end="(minutes) => onResizeEvent(event, minutes, false)" />
+                </template>
                 <!-- GHOST EVENT -->
                 <CalendarEvent
-                  :highlighted="selectedEvent?.id === calendarStore.ghostEvent?.id" :data-event-id="calendarStore.ghostEvent?.id"
-                  v-if="calendarStore.ghostEvent && isSameDay(new Date(calendarStore.ghostEvent.start), date) && new Date(calendarStore.ghostEvent.start).getHours() === hour"
-                  variant="edit" :event="calendarStore.ghostEvent" :style="getEventStyle(calendarStore.ghostEvent)"
-                  :overlappingEventsCount="1" :eventIndex="0" @click="() => highlightGhostEvent()"
-                  @resize:start="(minutes) => {
-                    onResizeGhostEvent(minutes, true)
-                  }"
-                  @resize:end="(minutes) => {
-                    onResizeGhostEvent(minutes, false)
-                  }" />
+    v-show="shouldRenderGhostEvent(calendarStore.ghostEvent!, date, hour)"
+  v-if="calendarStore.ghostEvent"
+  variant="edit"
+  :event="calendarStore.ghostEvent"
+  :isMultiDay="isMultiDay(calendarStore.ghostEvent)"
+  :highlighted="selectedEvent?.id === calendarStore.ghostEvent?.id"
+  :data-event-id="calendarStore.ghostEvent?.id"
+  :style="getEventStyle(calendarStore.ghostEvent, date)"
+  :overlappingEventsCount="1"
+  :eventIndex="0"
+  @click="() => highlightGhostEvent()"
+  @resize:start="(minutes) => onResizeGhostEvent(minutes, true)"
+  @resize:end="(minutes) => onResizeGhostEvent(minutes, false)"
+/>
+
               </CalendarCell>
             </div>
           </div>

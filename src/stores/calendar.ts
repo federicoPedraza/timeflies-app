@@ -25,7 +25,7 @@ export const useCalendarStore = defineStore('calendar', () => {
     const ghostEvent = ref<TimeEvent & { x: number; y: number } | null>(null);
 
     // create ghost event
-    const createGhostEvent = (startingDate: Date = new Date()) => {
+    const createGhostEvent = (startingDate: Date = new Date(), x: number = 0, y: number = 0) => {
         const endDate = new Date(startingDate.getTime() + 60 * 60 * 1000) // 1 hour
 
         const newGhostEvent: TimeEvent & { x: number; y: number } = {
@@ -34,8 +34,8 @@ export const useCalendarStore = defineStore('calendar', () => {
             description: '',
             start: startingDate,
             end: endDate,
-            x: 0,
-            y: 0
+            x: x,
+            y: y
         }
 
         ghostEvent.value = newGhostEvent;
