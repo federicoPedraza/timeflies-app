@@ -316,10 +316,13 @@ const scrollToHour = (hour: number, highlightEventId: string | null = null) => {
 }
 
 const selectedEvent = ref<TimeEvent & { x: number; y: number } | null>(null)
-const highlightedEventId = ref<string | null>(null)
+
+const highlightGhostEvent = () => {
+  highlightEvent(calendarStore.ghostEvent?.id ?? '')
+}
 
 const highlightEvent = (eventId: string) => {
-  const event = eventStore.events.find(e => e.id === eventId)
+  const event = [...eventStore.events, calendarStore.ghostEvent].find(e => e?.id === eventId)
   if (!event) return
 
   const container = bodyScrollContainer.value
@@ -327,6 +330,7 @@ const highlightEvent = (eventId: string) => {
 
   const eventElement = container.querySelector(`[data-event-id="${eventId}"]`) as HTMLElement
   if (!eventElement) return
+
 
   const containerRect = container.getBoundingClientRect()
   const eventRect = eventElement.getBoundingClientRect()
@@ -498,6 +502,7 @@ defineExpose({ scrollToHour, highlightEvent })
                 </template>
                 <!-- EVENTS -->
                 <CalendarEvent variant="default" v-for="(event) in getEventsForCell(date, hour)" :key="event.id"
+                  :highlighted="selectedEvent?.id === event.id"
                   :event="event"
                   :data-event-id="event.id"
                   :style="calendarStore.ghostEvent?.id === event.id ? { display: 'none' } : getEventStyle(event)"
@@ -511,32 +516,10 @@ defineExpose({ scrollToHour, highlightEvent })
                   }" />
                 <!-- GHOST EVENT -->
                 <CalendarEvent
+                  :highlighted="selectedEvent?.id === calendarStore.ghostEvent?.id" :data-event-id="calendarStore.ghostEvent?.id"
                   v-if="calendarStore.ghostEvent && isSameDay(new Date(calendarStore.ghostEvent.start), date) && new Date(calendarStore.ghostEvent.start).getHours() === hour"
                   variant="edit" :event="calendarStore.ghostEvent" :style="getEventStyle(calendarStore.ghostEvent)"
-                  :overlappingEventsCount="1" :eventIndex="0" @click="(e: MouseEvent) => {
-                    const container = bodyScrollContainer
-                    const targetEl = e.currentTarget as HTMLElement
-
-                    if (container && targetEl) {
-                      const containerRect = container.getBoundingClientRect()
-                      const eventRect = targetEl.getBoundingClientRect()
-
-                      const popupWidth = 240
-                      const rightGap = 8
-                      const leftGap = 100
-
-                      const rightX = eventRect.right - containerRect.left + container.scrollLeft + rightGap
-                      const leftX = eventRect.left - containerRect.left + container.scrollLeft - popupWidth - leftGap
-
-                      const fitsOnRight = rightX + popupWidth < container.scrollLeft + container.clientWidth
-
-                      selectedEvent = calendarStore.ghostEvent ? {
-                        ...calendarStore.ghostEvent,
-                        x: fitsOnRight ? rightX : Math.max(leftX, 0),
-                        y: eventRect.top - containerRect.top + container.scrollTop
-                      } : null
-                    }
-                  }"
+                  :overlappingEventsCount="1" :eventIndex="0" @click="() => highlightGhostEvent()"
                   @resize:start="(minutes) => {
                     onResizeGhostEvent(minutes, true)
                   }"
