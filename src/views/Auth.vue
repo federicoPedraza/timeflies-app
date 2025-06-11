@@ -2,6 +2,7 @@
 import { onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRoute, useRouter } from 'vue-router'
+import { useToast } from '@/stores/toast'
 
 const email = ref('')
 const password = ref('')
@@ -31,6 +32,7 @@ const name = ref('')
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+const toastStore = useToast()
 
 const loading = ref(false)
 
