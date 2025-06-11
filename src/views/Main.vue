@@ -41,11 +41,9 @@ const calendarRef = ref()
 onMounted(() => {
   toastStore.addToast(
     h(MessageToast, {
-      message: 'This is a toast',
-      initialTimeout: 3000,
-      id: 'toast-1'
+      message: 'Welcome to the calendar!',
     }),
-    'info'
+    'info',
   )
 
   // get current month from query
@@ -82,13 +80,13 @@ onUnmounted(() => {
   </div>
   <div class="toast-container">
     <Toast
-  v-for="toast in toastStore.toasts"
-  :key="toast.id"
-  :timeout="3000"
->
-  <component :is="toast.component" />
-</Toast>
-
+      v-for="toast in toastStore.toasts"
+      :key="toast.id"
+      :id="toast.id"
+      :timeout="toast.timeout"
+    >
+      <component :is="toast.component" />
+    </Toast>
   </div>
 </template>
 
