@@ -78,7 +78,7 @@ onUnmounted(() => {
     <Sidebar v-model:calendar-ref="calendarRef" />
     <Calendar ref="calendarRef" />
   </div>
-  <div class="toast-container">
+  <div class="toast-container flex flex-col gap-4">
     <Toast
       v-for="toast in toastStore.toasts"
       :key="toast.id"

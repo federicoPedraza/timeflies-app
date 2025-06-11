@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { h, ref } from 'vue'
 import { useAuthStore } from './auth.ts'
 import { useCalendarStore } from './calendar.ts'
 import { getStartOfMonth } from '@/utils/dates/date-formatter.ts'
 import { getEndOfMonth } from '@/utils/dates/date-formatter.ts'
 import { startOfWeek, endOfWeek } from 'date-fns'
+import { useToast } from './toast.ts'
+import MessageToast from '@/components/toast/MessageToast.vue'
 
 const API = import.meta.env.VITE_API_BASE_URL
 
@@ -20,6 +22,7 @@ export const useEventStore = defineStore('events', () => {
   const events = ref<TimeEvent[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const toastStore = useToast()
 
   async function fetchEvents(start?: Date, end?: Date) {
     const calendarStore = useCalendarStore()
@@ -39,8 +42,14 @@ export const useEventStore = defineStore('events', () => {
     const token = authStore.accessToken || localStorage.getItem('accessToken')
 
     if (!token) {
-      error.value = 'Missing token'
+      toastStore.addToast(
+        h(MessageToast, {
+          message: 'There was an error fetching events. Please try logging in again.',
+        }),
+        'error',
+      )
       loading.value = false
+      authStore.logout()
       return
     }
 
@@ -52,7 +61,16 @@ export const useEventStore = defineStore('events', () => {
         }
       })
 
-      if (!res.ok) throw new Error('Failed to fetch events')
+      if (!res.ok) {
+        toastStore.addToast(
+          h(MessageToast, {
+            message: 'There was an error fetching events.',
+          }),
+          'error',
+        )
+        loading.value = false
+        return
+      }
 
       const json = await res.json()
       events.value = json.data.map((e: any) => ({
@@ -61,6 +79,12 @@ export const useEventStore = defineStore('events', () => {
         end: new Date(e.end),
       }))
     } catch (err: any) {
+      toastStore.addToast(
+        h(MessageToast, {
+          message: 'There was an error fetching events.',
+        }),
+        'error',
+      )
       error.value = err.message
     } finally {
       loading.value = false
@@ -72,7 +96,12 @@ export const useEventStore = defineStore('events', () => {
     const token = authStore.accessToken || localStorage.getItem('accessToken')
 
     if (!event.id) {
-      error.value = 'Event ID is required'
+      toastStore.addToast(
+        h(MessageToast, {
+          message: 'There was an error modifying this event.',
+        }),
+        'error',
+      )
       return
     }
 
@@ -91,17 +120,33 @@ export const useEventStore = defineStore('events', () => {
         })
       })
 
-      if (!res.ok) throw new Error('Failed to modify event')
+      if (!res.ok) {
+        toastStore.addToast(
+          h(MessageToast, {
+            message: 'There was an error modifying this event. Please try again.',
+          }),
+          'error',
+        )
+        return
+      }
 
-      const json = await res.json()
-      events.value = json.data.map((e: any) => ({
-        ...e,
-        start: new Date(e.start),
-        end: new Date(e.end),
-      }))
+      await res.json()
     } catch (err: any) {
+      console.log(err)
+      toastStore.addToast(
+        h(MessageToast, {
+          message: 'There was an error modifying this event. Please try again.',
+        }),
+        'error',
+      )
       error.value = err.message
     } finally {
+      toastStore.addToast(
+        h(MessageToast, {
+          message: 'Event modified successfully.',
+        }),
+        'success',
+      )
       loading.value = false
     }
   }
@@ -111,7 +156,12 @@ export const useEventStore = defineStore('events', () => {
     const token = authStore.accessToken || localStorage.getItem('accessToken')
 
     if (!event.title) {
-      error.value = 'Event title is required'
+      toastStore.addToast(
+        h(MessageToast, {
+          message: 'You need to give this event a title before creating it.',
+        }),
+        'error',
+      )
       return
     }
 
@@ -130,13 +180,33 @@ export const useEventStore = defineStore('events', () => {
         })
       })
 
-      if (!res.ok) throw new Error('Failed to create event')
+      if (!res.ok) {
+        toastStore.addToast(
+          h(MessageToast, {
+            message: 'There was an error creating this event. Please try again.',
+          }),
+          'error',
+        )
+        return
+      }
 
       await res.json()
       await fetchEvents()
     } catch (err: any) {
+      toastStore.addToast(
+        h(MessageToast, {
+          message: 'There was an error creating this event. Please try again.',
+        }),
+        'error',
+      )
       error.value = err.message
     } finally {
+      toastStore.addToast(
+        h(MessageToast, {
+          message: 'Event created successfully.',
+        }),
+        'success',
+      )
       loading.value = false
     }
   }
@@ -153,12 +223,32 @@ export const useEventStore = defineStore('events', () => {
         }
       })
 
-      if (!res.ok) throw new Error('Failed to delete event')
+      if (!res.ok) {
+        toastStore.addToast(
+          h(MessageToast, {
+            message: 'There was an error deleting this event. Please try again.',
+          }),
+          'error',
+        )
+        return
+      }
 
       await fetchEvents()
     } catch (err: any) {
+      toastStore.addToast(
+        h(MessageToast, {
+          message: 'There was an error deleting this event. Please try again.',
+        }),
+        'error',
+      )
       error.value = err.message
     } finally {
+      toastStore.addToast(
+        h(MessageToast, {
+          message: 'Event deleted successfully.',
+        }),
+        'success',
+      )
       loading.value = false
     }
   }

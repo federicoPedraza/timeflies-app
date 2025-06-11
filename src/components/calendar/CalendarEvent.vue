@@ -32,6 +32,7 @@ const emit = defineEmits<{
   (e: 'click-event', eventId: string): void
   (e: 'resize:start', deltaMinutes: number): void
   (e: 'resize:end', deltaMinutes: number): void
+  (e: 'resize:both', deltaMinutes: number): void
 }>()
 
 const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e: MouseEvent) => {
@@ -148,8 +149,7 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
       emit('resize:end', delta)
     } else {
       const delta = (calendarStore.ghostEvent!.start.getTime() - originalStart.getTime()) / 1000 / 60
-      emit('resize:start', delta)
-      emit('resize:end', delta)
+      emit('resize:both', delta)
     }
   }
 

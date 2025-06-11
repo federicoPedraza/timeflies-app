@@ -434,6 +434,14 @@ const onResizeEvent = async (event: TimeEvent, minutes: number, isStart: boolean
   calendarStore.destroyGhostEvent()
 }
 
+const onResizeBothEvent = async (event: TimeEvent, minutes: number) => {
+  event.start = new Date(event.start.getTime() + minutes * 60 * 1000)
+  event.end = new Date(event.end.getTime() + minutes * 60 * 1000)
+  await eventStore.modifyEvent(event)
+
+  calendarStore.destroyGhostEvent()
+}
+
 const onResizeGhostEvent = async (minutes: number, isStart: boolean) => {
   if (!calendarStore.ghostEvent) return
 
@@ -577,7 +585,8 @@ defineExpose({ scrollToHour, highlightEvent })
                     :eventIndex="overlappingMeta.get(date.toDateString())?.get(event.id)?.index ?? 0"
                     @click-event="highlightEvent"
                     @resize:start="(minutes) => onResizeEvent(event, minutes, true)"
-                    @resize:end="(minutes) => onResizeEvent(event, minutes, false)" />
+                    @resize:end="(minutes) => onResizeEvent(event, minutes, false)"
+                    @resize:both="(minutes) => onResizeBothEvent(event, minutes)" />
                 </template>
                 <!-- GHOST EVENT -->
                 <CalendarEvent
@@ -595,6 +604,7 @@ defineExpose({ scrollToHour, highlightEvent })
                 @click-event="highlightGhostEvent"
                 @resize:start="(minutes) => onResizeGhostEvent(minutes, true)"
                 @resize:end="(minutes) => onResizeGhostEvent(minutes, false)"
+                @resize:both="(minutes) => onResizeGhostEvent(minutes, true)"
               />
               </CalendarCell>
             </div>

@@ -50,15 +50,17 @@ const progressColor = computed(() => {
 </script>
 
 <template>
-  <div class="bg-white border border-gray-200 rounded-lg shadow-md min-w-80 relative">
-    <button
-      @click="handleClose"
-      class="absolute top-2 right-2 hover:bg-gray-200 p-1 rounded-full  transition-colors"
-    >
-      <img src="@/assets/icons/circle-x.svg" alt="close" class="w-4 h-4" />
-    </button>
+  <div class="bg-white border flex flex-row justify-between border-gray-200 rounded-lg shadow-md min-w-80 relative">
     <slot />
-    <div class="h-1 w-full bg-gray-200 rounded-b-lg">
+    <div class="p-2">
+      <button
+        @click="handleClose"
+        class="hover:bg-gray-200 p-1 rounded-full transition-colors"
+      >
+        <img src="@/assets/icons/circle-x.svg" alt="close" class="w-4 h-4" />
+      </button>
+    </div>
+    <div class="absolute bottom-[-2px] h-1 w-full bg-gray-200 rounded-b-lg">
       <div
         class="h-full rounded-b-lg"
         :class="progressColor"
