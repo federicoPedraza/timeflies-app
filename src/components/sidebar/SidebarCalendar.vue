@@ -13,9 +13,11 @@ import {
 } from 'date-fns'
 import { useRouter } from 'vue-router'
 import { useEventStore } from '@/stores/events'
+import { useSettingsStore } from '@/stores/settings'
 
 const calendarStore = useCalendarStore()
 const eventStore = useEventStore()
+const settingsStore = useSettingsStore()
 
 const router = useRouter()
 
@@ -24,8 +26,8 @@ const dayNames = calendarStore.getDayNamesInOrder()
 const monthStart = startOfMonth(calendarStore.visibleMonth)
 const monthEnd = endOfMonth(calendarStore.visibleMonth)
 
-const firstVisibleDate = startOfWeek(monthStart, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 })
-const lastVisibleDate = endOfWeek(monthEnd, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 })
+const firstVisibleDate = startOfWeek(monthStart, { weekStartsOn: settingsStore.startsWithSunday ? 0 : 1 })
+const lastVisibleDate = endOfWeek(monthEnd, { weekStartsOn: settingsStore.startsWithSunday ? 0 : 1 })
 
 const fullGridDates = eachDayOfInterval({ start: firstVisibleDate, end: lastVisibleDate })
 
@@ -41,8 +43,8 @@ watch(() => calendarStore.visibleMonth, (newMonth) => {
   const monthStart = startOfMonth(newMonth)
   const monthEnd = endOfMonth(newMonth)
 
-  const firstVisibleDate = startOfWeek(monthStart, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 })
-  const lastVisibleDate = endOfWeek(monthEnd, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 })
+  const firstVisibleDate = startOfWeek(monthStart, { weekStartsOn: settingsStore.startsWithSunday ? 0 : 1 })
+  const lastVisibleDate = endOfWeek(monthEnd, { weekStartsOn: settingsStore.startsWithSunday ? 0 : 1 })
 
   const fullGridDates = eachDayOfInterval({ start: firstVisibleDate, end: lastVisibleDate })
 

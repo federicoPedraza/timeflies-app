@@ -10,17 +10,19 @@ import { startOfWeek, endOfWeek } from 'date-fns'
 import MessageToast from '@/components/toast/MessageToast.vue'
 import { h } from 'vue'
 import { useToast } from '@/stores/toast'
+import { useSettingsStore } from '@/stores/settings'
 
 const eventStore = useEventStore()
 const calendarStore = useCalendarStore()
+const settingsStore = useSettingsStore()
 
 const getVisibleDateRange = () => {
   const monthStart = getStartOfMonth(calendarStore.visibleMonth)
   const monthEnd = getEndOfMonth(calendarStore.visibleMonth)
 
   return {
-    start: startOfWeek(monthStart, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 }),
-    end: endOfWeek(monthEnd, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 })
+    start: startOfWeek(monthStart, { weekStartsOn: settingsStore.startsWithSunday ? 0 : 1 }),
+    end: endOfWeek(monthEnd, { weekStartsOn: settingsStore.startsWithSunday ? 0 : 1 })
   }
 }
 

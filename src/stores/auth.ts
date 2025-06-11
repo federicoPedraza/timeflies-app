@@ -4,6 +4,7 @@ import router from '@/router'
 import { useToast } from './toast'
 import { h } from 'vue'
 import MessageToast from '@/components/toast/MessageToast.vue'
+import { useSettingsStore } from './settings'
 
 const API = import.meta.env.VITE_API_BASE_URL
 
@@ -15,7 +16,7 @@ export const useAuthStore = defineStore('auth', {
         loading: false,
     }),
     actions: {
-    async login(email: string, password: string) {
+    async login(email: string, password: string): Promise<{ accessToken: string | null }> {
         const toastStore = useToast()
         this.loading = true
 
@@ -45,8 +46,10 @@ export const useAuthStore = defineStore('auth', {
             const decoded = jwtDecode<{ id: string, email: string, name: string }>(this.accessToken as string);
             this.user = { id: decoded.id, email: decoded.email, name: decoded.name}
             this.persistToken()
-        } catch (err: any) {
-            if (err.message !== 'Email or password is incorrect')
+
+            return { accessToken: this.accessToken }
+        } catch (err: unknown) {
+            if (err instanceof Error && err.message !== 'Email or password is incorrect')
                 toastStore.addToast(
                     h(MessageToast, {
                         message: 'An error occurred, please try again later.',
@@ -59,7 +62,7 @@ export const useAuthStore = defineStore('auth', {
             this.loading = false
         }
     },
-    async signUp(email: string, name: string, password: string) {
+    async signUp(email: string, name: string, password: string): Promise<{ accessToken: string | null }> {
         const toastStore = useToast()
         this.loading = true
 
@@ -93,6 +96,8 @@ export const useAuthStore = defineStore('auth', {
             const decoded = jwtDecode<{ id: string, email: string, name: string }>(this.accessToken as string);
             this.user = { id: decoded.id, email: decoded.email, name: decoded.name}
             this.persistToken()
+
+            return { accessToken: this.accessToken }
         } catch (err) {
             this.loading = false
             console.error(err)
@@ -102,6 +107,7 @@ export const useAuthStore = defineStore('auth', {
                 }),
                 'error',
             )
+            return { accessToken: null }
         }
     },
     async checkEmail(email: string) {
@@ -198,6 +204,55 @@ export const useAuthStore = defineStore('auth', {
         })
         if (!res.ok)
             throw new Error('Failed to change password')
+    },
+    async fetchSettings(accessToken: string) {
+        const res = await fetch(`${API}/v1/users/me`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        })
+        const response = await res.json()
+
+        const settingsStore = useSettingsStore()
+        settingsStore.timeNotation = response.data.timeNotation
+        settingsStore.startsWithSunday = response.data.weekStartsOnSunday
+        settingsStore.focusHourOnStart = response.data.focusHourOnStart
+        settingsStore.timezone = response.data.timezone
+
+        // Store settings in local storage
+        localStorage.setItem('settings', JSON.stringify({
+            timeNotation: response.data.timeNotation,
+            startsWithSunday: response.data.weekStartsOnSunday,
+            focusHourOnStart: response.data.focusHourOnStart,
+            timezone: response.data.timezone
+        }))
+    },
+    async updateSettings(settings: { timeNotation: '12' | '24', weekStartsOnSunday: boolean, focusHourOnStart: boolean, timezone: string }) {
+        const res = await fetch(`${API}/v1/users/me`, {
+            method: 'PATCH',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.accessToken}`,
+            },
+            body: JSON.stringify({
+                timeNotation: settings.timeNotation,
+                weekStartsOnSunday: settings.weekStartsOnSunday,
+                focusHourOnStart: settings.focusHourOnStart,
+                timezone: settings.timezone,
+            }),
+        })
+        if (!res.ok)
+            throw new Error('Failed to update settings')
+
+        const settingsStore = useSettingsStore()
+        settingsStore.timeNotation = settings.timeNotation
+        settingsStore.startsWithSunday = settings.weekStartsOnSunday
+        settingsStore.focusHourOnStart = settings.focusHourOnStart
+        settingsStore.timezone = settings.timezone
     },
     persistToken() {
         const accessToken = localStorage.getItem('accessToken')

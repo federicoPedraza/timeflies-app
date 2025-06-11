@@ -7,18 +7,20 @@ import { getStartOfMonth } from '@/utils/dates/date-formatter.ts';
 import { getEndOfMonth } from '@/utils/dates/date-formatter.ts';
 import { useRouter } from 'vue-router'
 import { startOfWeek, endOfWeek } from 'date-fns'
+import { useSettingsStore } from '@/stores/settings'
 
 const calendarStore = useCalendarStore()
 const eventStore = useEventStore()
 const router = useRouter()
+const settingsStore = useSettingsStore()
 
 const getVisibleDateRange = () => {
   const monthStart = getStartOfMonth(calendarStore.visibleMonth)
   const monthEnd = getEndOfMonth(calendarStore.visibleMonth)
 
   return {
-    start: startOfWeek(monthStart, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 }),
-    end: endOfWeek(monthEnd, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 })
+    start: startOfWeek(monthStart, { weekStartsOn: settingsStore.startsWithSunday ? 0 : 1 }),
+    end: endOfWeek(monthEnd, { weekStartsOn: settingsStore.startsWithSunday ? 0 : 1 })
   }
 }
 

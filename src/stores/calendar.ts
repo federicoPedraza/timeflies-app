@@ -1,14 +1,13 @@
 import type { TimeEvent } from "./events";
 import { defineStore } from "pinia";
 import { ref } from "vue";
+import { useSettingsStore } from "./settings";
 
 export const useCalendarStore = defineStore('calendar', () => {
     // settings
-    const startsWithSunday = false;
-    const focusOnCurrentHour = false;
-    const timeNotation = ref<'12h' | '24h'>('12h');
+    const settingsStore = useSettingsStore();
+
     const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
-    const timeZone = ref('UTC');
 
     // current state
     const today = new Date();
@@ -46,7 +45,7 @@ export const useCalendarStore = defineStore('calendar', () => {
     }
 
     const getDayNamesInOrder = () => {
-        if (startsWithSunday) {
+        if (settingsStore.startsWithSunday) {
             return dayNames;
         } else {
             return dayNames.slice(1).concat(dayNames[0]);
@@ -58,10 +57,6 @@ export const useCalendarStore = defineStore('calendar', () => {
     }
 
     return {
-        startsWithSunday,
-        focusOnCurrentHour,
-        timeNotation,
-        timeZone,
         dayNames,
         today,
         visibleMonth,
@@ -71,6 +66,6 @@ export const useCalendarStore = defineStore('calendar', () => {
         lastFocusedDate,
         ghostEvent,
         createGhostEvent,
-        destroyGhostEvent
+        destroyGhostEvent,
     }
 })

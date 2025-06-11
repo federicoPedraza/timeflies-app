@@ -4,17 +4,19 @@ import { startOfWeek, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, is
 import CalendarHour from '../components/calendar/CalendarHour.vue'
 import CalendarCell from '../components/calendar/CalendarCell.vue'
 import CalendarEvent from '../components/calendar/CalendarEvent.vue'
-import { formatDate } from '@/utils/dates/date-formatter'
 import { useCalendarStore } from '@/stores/calendar'
 import { useEventStore, type TimeEvent } from '@/stores/events'
 import EventPopup from '../components/modals/EventPopup.vue'
+import { useSettingsStore } from '@/stores/settings'
+import moment from 'moment-timezone'
 
 const calendarStore = useCalendarStore()
 const eventStore = useEventStore()
+const settingsStore = useSettingsStore()
 
-const { startsWithSunday, timeNotation, dayNames, focusOnCurrentHour } = calendarStore
+const { startsWithSunday, timeNotation, focusHourOnStart } = settingsStore
 
-const getDayName = (date: Date) => dayNames[date.getDay()]
+const getDayName = (date: Date) => calendarStore.dayNames[date.getDay()]
 
 const currentWeekStart = ref(startOfWeek(calendarStore.today, { weekStartsOn: startsWithSunday ? 0 : 1 }))
 const dateObjects = ref<Date[]>([])
@@ -94,7 +96,7 @@ const recalculateDayWidth = () => {
 }
 
 const getStartingVisibleHour = () => {
-  if (focusOnCurrentHour) {
+  if (focusHourOnStart) {
     return calendarStore.today.getHours()
   }
   const today = calendarStore.today
@@ -183,7 +185,7 @@ const shouldRenderGhostEvent = (ghost: TimeEvent, date: Date, hour: number) => {
 }
 
 const isMultiDay = (event: TimeEvent) => {
-  return event.start.toDateString() !== event.end.toDateString()
+  return moment(event.start).format('YYYY-MM-DD') !== moment(event.end).format('YYYY-MM-DD')
 }
 
 const hasEventCrossingHalfHour = (date: Date, hour: number) => {
@@ -312,7 +314,7 @@ const overlappingMeta = computed(() => {
     for (const [id, value] of clusterMeta.entries()) {
       dayMap.set(id, value)
     }
-    meta.set(date.toDateString(), dayMap)
+    meta.set(moment(date).format('YYYY-MM-DD'), dayMap)
   }
 
   return meta;
@@ -527,7 +529,7 @@ defineExpose({ scrollToHour, highlightEvent })
       <!-- HEADER SCROLL AREA -->
       <div ref="headerScrollContainer" class="overflow-x-hidden scrollbar-none" :style="{ width: calendarWidth }">
         <div class="flex w-max">
-          <div v-for="(date, index) in dateObjects" :key="'head-' + date.toDateString()"
+          <div v-for="(date, index) in dateObjects" :key="'head-' + moment(date).format('YYYY-MM-DD')"
             :style="{ width: `${dayWidth}px` }">
             <CalendarCell :width="dayWidth" :class="[
               'h-[64px] border-[#E0E0E0] border-b-[1px]',
@@ -536,7 +538,7 @@ defineExpose({ scrollToHour, highlightEvent })
             ]">
               <div class="flex flex-col pt-1 pr-2 pb-4 pl-2">
                 <span class="text-[10px] font-bold text-[#71717A]">{{ getDayName(date) }}</span>
-                <span class="text-2xl text-black">{{ formatDate(date, 'dd') }}</span>
+                <span class="text-2xl text-black">{{ moment(date).format('dd') }}</span>
               </div>
             </CalendarCell>
           </div>
@@ -548,7 +550,7 @@ defineExpose({ scrollToHour, highlightEvent })
         :style="{ height: 'calc(100vh - 72px)', width: calendarWidth }">
         <div class="w-max relative">
           <div v-for="hour in hours" :key="'row-' + hour" class="flex h-[72px]">
-            <div v-for="(date, index) in dateObjects" :key="date.toDateString() + '-' + hour"
+            <div v-for="(date, index) in dateObjects" :key="moment(date).format('YYYY-MM-DD') + '-' + hour"
               :style="{ width: `${dayWidth}px` }">
               <CalendarCell :width="dayWidth"
                 :displayHourIndicator="isToday(date) && currentHourFraction !== null && hour === 0"
@@ -581,8 +583,8 @@ defineExpose({ scrollToHour, highlightEvent })
                     :isGhostEvent="false"
                     :data-event-id="event.id"
                     :style="getEventStyle(event, date)"
-                    :overlappingEventsCount="overlappingMeta.get(date.toDateString())?.get(event.id)?.count ?? 1"
-                    :eventIndex="overlappingMeta.get(date.toDateString())?.get(event.id)?.index ?? 0"
+                    :overlappingEventsCount="overlappingMeta.get(moment(date).format('YYYY-MM-DD'))?.get(event.id)?.count ?? 1"
+                    :eventIndex="overlappingMeta.get(moment(date).format('YYYY-MM-DD'))?.get(event.id)?.index ?? 0"
                     @click-event="highlightEvent"
                     @resize:start="(minutes) => onResizeEvent(event, minutes, true)"
                     @resize:end="(minutes) => onResizeEvent(event, minutes, false)"

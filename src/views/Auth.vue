@@ -56,7 +56,10 @@ function prevPhase() {
 const handleSignUp = async () => {
     try {
         loading.value = true
-        await auth.signUp(email.value, name.value, password.value)
+        const res = await auth.signUp(email.value, name.value, password.value)
+        if (res.accessToken) {
+            await auth.fetchSettings(res.accessToken)
+        }
         router.push('/')
     } catch (error) {
         console.error(error)
@@ -68,7 +71,10 @@ const handleSignUp = async () => {
 const handleLogin = async () => {
     try {
         loading.value = true
-        await auth.login(email.value, password.value)
+        const res = await auth.login(email.value, password.value)
+        if (res.accessToken) {
+            await auth.fetchSettings(res.accessToken)
+        }
         router.push('/')
     } catch (error) {
         errors.value.login = error instanceof Error ? error.message : 'An error occurred, please try again later'
