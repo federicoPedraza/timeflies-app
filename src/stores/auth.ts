@@ -85,7 +85,7 @@ export const useAuthStore = defineStore('auth', {
         localStorage.removeItem('refreshToken')
         this.persistToken()
     },
-    async deleteAccount() {
+    async deleteAccount(password: string) {
         if (!this.accessToken)
             throw new Error('No token found')
 
@@ -96,9 +96,13 @@ export const useAuthStore = defineStore('auth', {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${this.accessToken}`,
             },
+            body: JSON.stringify({
+                password,
+            }),
         })
         if (!res.ok)
             throw new Error('Failed to delete account')
+
         this.logout()
         router.push('/auth?signup=true')
     },
@@ -127,6 +131,25 @@ export const useAuthStore = defineStore('auth', {
         this.persistToken()
 
         return this.accessToken
+    },
+    async changePassword(oldPassword: string, newPassword: string) {
+        if (!this.accessToken)
+            throw new Error('No token found')
+
+        const res = await fetch(`${API}/v1/users/change-password`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.accessToken}`,
+            },
+            body: JSON.stringify({
+                oldPassword,
+                newPassword,
+            }),
+        })
+        if (!res.ok)
+            throw new Error('Failed to change password')
     },
     persistToken() {
         const accessToken = localStorage.getItem('accessToken')

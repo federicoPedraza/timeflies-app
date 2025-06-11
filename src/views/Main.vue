@@ -7,6 +7,10 @@ import { useCalendarStore } from '@/stores/calendar'
 import { getStartOfMonth, getEndOfMonth } from '@/utils/dates/date-formatter'
 import { useRoute } from 'vue-router'
 import { startOfWeek, endOfWeek } from 'date-fns'
+import Toast from '@/components/toast/Toast.vue'
+import MessageToast from '@/components/toast/MessageToast.vue'
+import { h } from 'vue'
+import { useToast } from '@/stores/toast'
 
 const eventStore = useEventStore()
 const calendarStore = useCalendarStore()
@@ -31,9 +35,19 @@ const parseMonthQuery = (month: string) => {
   return date
 }
 
+const toastStore = useToast()
 const calendarRef = ref()
 
 onMounted(() => {
+  toastStore.addToast(
+    h(MessageToast, {
+      message: 'This is a toast',
+      initialTimeout: 3000,
+      id: 'toast-1'
+    }),
+    'info'
+  )
+
   // get current month from query
   const route = useRoute()
   const month = route.query.month as string
@@ -66,6 +80,16 @@ onUnmounted(() => {
     <Sidebar v-model:calendar-ref="calendarRef" />
     <Calendar ref="calendarRef" />
   </div>
+  <div class="toast-container">
+    <Toast
+  v-for="toast in toastStore.toasts"
+  :key="toast.id"
+  :timeout="3000"
+>
+  <component :is="toast.component" />
+</Toast>
+
+  </div>
 </template>
 
 <style scoped lang="css">
@@ -84,5 +108,12 @@ onUnmounted(() => {
 .main :deep(.calendar) {
     flex: 1;
     height: 100%;
+}
+
+.toast-container {
+    position: fixed;
+    bottom: 5vh;
+    right: 10vh;
+    z-index: 1000;
 }
 </style>

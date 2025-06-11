@@ -148,7 +148,6 @@ const buildStartTime = computed(() => {
 const safeStartDate = computed(() => {
   const date = buildStartTime.value
   if (!date) return null
-  props.event.start = date
   return date
 })
 
@@ -239,10 +238,11 @@ const validEndTime = computed(() => {
 
 const isChanged = (field: 'title' | 'description' | 'end' | 'start') => {
   if (field === 'end') {
-    return buildEndTime.value !== props.event.end
+    return buildEndTime.value?.getTime() !== props.event.end.getTime()
   }
   if (field === 'start') {
-    return buildStartTime.value !== props.event.start
+    const startTime = buildStartTime.value
+    return startTime ? startTime.getTime() !== props.event.start.getTime() : false
   }
   return changes.value[field] !== props.event[field]
 }
@@ -320,7 +320,7 @@ const handleStartInput = (field: 'day' | 'month' | 'time', value: string | numbe
 }
 
 const canBeSaved = computed(() => {
-  return hasChanges.value && !titleHasError() && !descriptionHasError()
+  return hasChanges.value && !titleHasError() && !descriptionHasError() && validStartTime.value && validEndTime.value
 })
 
 const deleteEvent = async () => {
@@ -349,6 +349,8 @@ const createEvent = async () => {
 }
 
 const saveChanges = async () => {
+  if (!canBeSaved.value) return;
+
   const eventStore = useEventStore()
   const payload: Partial<TimeEvent> = {
     id: props.event.id,
@@ -409,9 +411,8 @@ const saveChanges = async () => {
           <div v-if="!isEditMode" class="flex flex-col justify-start items-start gap-2 w-full">
             <span class="text-xs text-[#71717A]">
               {{ getEventDayName(event.start) }}, {{ getEventDay(event.start) }} {{ getEventMonth(event.start) }} ⋅ {{
-                formatDate(event.start, 'HH:mm') }} - {{ formatDate(event.end, 'HH:mm') }} ⋅ {{ getEventDayName(event.end)
-              }}, {{
-                getEventDay(event.end) }} {{ getEventMonth(event.end) }}
+                formatDate(event.start, 'HH:mm') }} - {{ formatDate(event.end, 'HH:mm') }}
+                {{ event.end.getDate() === event.start.getDate() ? '' :  '⋅' +  getEventDayName(event.end) }}{{ event.end.getDate() === event.start.getDate() ? '' : ', ' + getEventDay(event.end) }} {{ event.end.getDate() === event.start.getDate() ? '' : getEventMonth(event.end) }}
             </span>
             <span class="text-xs text-[#71717A]">
               {{ getEventDateDifference(event.start, event.end) }} ⋅ Runs for {{ getEventDuration(event.start,

@@ -384,7 +384,6 @@ const selectedEvent = ref<TimeEvent & { x: number; y: number } | null>(null)
 
 
 const highlightEvent = async (eventId: string) => {
-  console.log('highlightEvent', eventId)
   const event = [...eventStore.events, calendarStore.ghostEvent].find(e => e?.id === eventId)
   if (!event) return
 

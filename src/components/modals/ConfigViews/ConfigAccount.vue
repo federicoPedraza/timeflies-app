@@ -55,7 +55,7 @@ const validateConfirmPassword = () => {
 const handleSavePassword = () => {
     if (!validatePasswordStrength() || !validateConfirmPassword()) return;
 
-    console.log('save password');
+    authStore.changePassword(password.value, newPassword.value)
 }
 </script>
 
@@ -108,12 +108,12 @@ const handleSavePassword = () => {
                 </div>
                 <span class="text-sm">{{ authStore.user?.email }}</span>
             </div>
-            <div class="w-full h-[1px] my-2 bg-gray-200"></div>
+            <div class="w-full h-[1px] my-4 bg-gray-200"></div>
         </div>
         <div class="flex flex-col justify-start items-start w-full gap-4">
             <h3 class="text-sm font-semibold">Security</h3>
             <span class="text-sm text-gray-500">You must enter your password to change it.</span>
-            <div class="flex flex-col justify-start items-start gap-4 w-full">
+            <div class="flex flex-col justify-start items-start gap-2 w-full">
                 <div class="flex flex-col w-1/3">
                     <span class="text-sm text-gray-500">Current password</span>
                     <div class="flex flex-row items-center justify-start gap-2 w-full relative">
@@ -190,7 +190,7 @@ const handleSavePassword = () => {
             </div>
         </div>
         <div class="flex flex-col gap-4">
-            <div class="w-full h-[1px] bg-gray-200"></div>
+            <div class="w-full my-4 h-[1px] bg-gray-200"></div>
             <h3 class="text-sm font-semibold">Other</h3>
             <div class="flex flex-col">
                 <span class="text-sm text-gray-500">
@@ -201,7 +201,7 @@ const handleSavePassword = () => {
                 <span class="text-sm text-gray-500">If you want to delete your account, <span
                         class="underline hover:text-gray-700 cursor-pointer"
                         @click="deleteWarning = !deleteWarning">click here</span></span>
-                <div v-if="deleteWarning" class="w-full h-[1px] bg-gray-200 my-2"></div>
+                <div v-if="deleteWarning" class="w-full h-[1px] my-4  bg-gray-200 my-2"></div>
                 <div v-if="deleteWarning" class="flex flex-col gap-8">
                     <div class="flex flex-col">
                         <h2 class="text-sm font-semibold mb-2">Delete account</h2>
@@ -219,7 +219,7 @@ const handleSavePassword = () => {
                                 v-model="deletePasswordWarning" />
                         </div>
                         <div class="flex flex-row justify-start items-center gap-4 w-full">
-                            <button @click="authStore.deleteAccount()"
+                            <button @click="authStore.deleteAccount(deletePasswordWarning)"
                                 class="bg-red-400 hover:bg-red-600 shadow-md flex justify-center items-center gap-2 hover:shadow-lg rounded-md p-2 m-2 w-1/3"
                                 :class="{ 'opacity-50 cursor-not-allowed': deletePasswordWarning.length === 0 }">
                                 <span class="text-sm text-white">I want to delete my account</span>

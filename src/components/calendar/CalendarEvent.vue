@@ -159,7 +159,6 @@ const startGhostDrag = (event: TimeEvent, resizeTarget?: 'start' | 'end') => (e:
 
 const handleClick = (e: MouseEvent) => {
   // Ignore clicks on the discard button
-  console.log('handleClick', e)
   if ((e.target as HTMLElement).closest('button')) return
   e.stopPropagation()
   emit('click-event', props.event.id)
