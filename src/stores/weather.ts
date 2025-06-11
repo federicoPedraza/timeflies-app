@@ -1,9 +1,13 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { h, ref } from 'vue'
 import { useAuthStore } from './auth'
+import MessageToast from '@/components/toast/MessageToast.vue'
+import { useToast } from './toast'
 
 const API = import.meta.env.VITE_API_BASE_URL
 const WEATHER_CACHE_KEY = 'weather_cache'
+const WEATHER_ERROR_TOAST_KEY = 'weather_error_toast'
+const TOAST_DEBOUNCE_MS = 10 * 60 * 1000 // 10 minutes
 
 export interface WeatherForecast {
     date: Date
@@ -16,6 +20,22 @@ export interface WeatherForecast {
 
 export const useWeatherStore = defineStore('weather', () => {
     const weather = ref<WeatherForecast[]>([])
+    const toastStore = useToast()
+
+    const showErrorToast = () => {
+        const lastToastTime = localStorage.getItem(WEATHER_ERROR_TOAST_KEY)
+        const now = Date.now()
+
+        if (!lastToastTime || (now - parseInt(lastToastTime)) > TOAST_DEBOUNCE_MS) {
+            toastStore.addToast(
+                h(MessageToast, {
+                    message: 'There was an error fetching weather.',
+                }),
+                'error',
+            )
+            localStorage.setItem(WEATHER_ERROR_TOAST_KEY, now.toString())
+        }
+    }
 
     const loadCachedWeather = () => {
         const cached = localStorage.getItem(WEATHER_CACHE_KEY)
@@ -42,6 +62,7 @@ export const useWeatherStore = defineStore('weather', () => {
         const token = authStore.accessToken || localStorage.getItem('accessToken')
 
         if (!token) {
+            showErrorToast()
             return
         }
 
@@ -53,7 +74,10 @@ export const useWeatherStore = defineStore('weather', () => {
                 }
             })
 
-            if (!res.ok) throw new Error('Failed to fetch weather')
+            if (!res.ok) {
+                showErrorToast()
+                return
+            }
 
             const json = await res.json()
             const formattedData = json.data.map((e: any) => ({
@@ -68,9 +92,8 @@ export const useWeatherStore = defineStore('weather', () => {
             weather.value = formattedData
             cacheWeather(formattedData)
         } catch (err: any) {
-            console.error(err)
-            // If fetch fails, try to load from cache
             loadCachedWeather()
+            showErrorToast()
         }
     }
 
