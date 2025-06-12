@@ -128,7 +128,7 @@ onUnmounted(() => {
       </aside>
 
       <!-- Main content area -->
-      <main class="flex-1 bg-gray-100 overflow-auto pt-2 md:p-3">
+      <main class="flex-1 w-full  bg-gray-100 overflow-auto pt-2">
         <Calendar />
       </main>
     </div>

@@ -51,13 +51,13 @@ const handleMoreClick = () => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full gap-4 p-4  overflow-y-auto overflow-x-hidden bg-bland-dark text-white">
+  <div class="flex flex-col h-full gap-4 p-4 overflow-y-auto overflow-x-hidden bg-bland-dark text-white">
     <div class="flex justify-center space-x-2 ">
       <SidebarHeaderButton icon="more-icon" alt="Open add event menu" @click="handleMoreClick" />
       <SidebarHeaderButton icon="settings-icon" alt="Open settings menu" @click="handleSettingsClick" />
       <SidebarHeaderButton icon="logout-icon" alt="Logout" @click="handleLogoutClick" />
     </div>
-    <div class="flex flex-col h-full justify-between gap-4 md:gap-8 mt-4 sm:mt-12">
+    <div class="flex flex-col h-full justify-start gap-8 md:gap-2">
       <SidebarMonth :month="calendarStore.visibleMonth" />
       <SidebarCalendar />
       <SidebarSummary @scroll-to-hour="handleScrollToHour" />

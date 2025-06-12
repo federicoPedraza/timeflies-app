@@ -4,6 +4,6 @@
 
 <template>
     <div>
-        <h1>Appearance</h1>
+        <h1>I wish there was more to do here</h1>
     </div>
 </template>
