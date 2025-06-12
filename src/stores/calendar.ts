@@ -2,6 +2,7 @@ import type { TimeEvent } from "./events";
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import { useSettingsStore } from "./settings";
+import moment from 'moment-timezone';
 
 export const useCalendarStore = defineStore('calendar', () => {
     // settings
@@ -11,7 +12,7 @@ export const useCalendarStore = defineStore('calendar', () => {
 
     // current state
     const today = new Date();
-    const visibleMonth = ref(new Date());
+    const visibleMonth = ref(moment.tz(settingsStore.timezone).toDate())
 
     const lastFocusedDate = ref<Date | null>(null);
 

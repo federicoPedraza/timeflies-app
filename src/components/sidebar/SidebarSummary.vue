@@ -98,9 +98,9 @@ const getEventOverflowCount = (day: Date) => {
 
 const onEventClick = (event: TimeEvent) => {
     // check if the event is in another month
-    if (isAfter(event.start, getEndOfMonth(calendarStore.visibleMonth))) {
+    if (isAfter(event.start, getEndOfMonth(calendarStore.visibleMonth, settingsStore.timezone))) {
         calendarStore.setVisibleMonth(addMonths(calendarStore.visibleMonth, 1))
-    } else if (isBefore(event.start, getStartOfMonth(calendarStore.visibleMonth))) {
+    } else if (isBefore(event.start, getStartOfMonth(calendarStore.visibleMonth, settingsStore.timezone ))) {
         calendarStore.setVisibleMonth(subMonths(calendarStore.visibleMonth, 1))
     }
 

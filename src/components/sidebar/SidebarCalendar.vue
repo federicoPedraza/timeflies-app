@@ -14,6 +14,7 @@ import {
 import { useRouter } from 'vue-router'
 import { useEventStore } from '@/stores/events'
 import { useSettingsStore } from '@/stores/settings'
+import moment from 'moment-timezone'
 
 const calendarStore = useCalendarStore()
 const eventStore = useEventStore()
@@ -37,7 +38,10 @@ for (let i = 0; i < fullGridDates.length; i += 7) {
   weeks.value.push(fullGridDates.slice(i, i + 7))
 }
 
-const isToday = (date: Date) => isSameDay(date, calendarStore.today)
+const isToday = (date: Date) => {
+    return moment.tz(date, settingsStore.timezone).isSame(moment.tz(settingsStore.toMoment(new Date()), settingsStore.timezone), 'day')
+}
+
 
 watch(() => calendarStore.visibleMonth, (newMonth) => {
   const monthStart = startOfMonth(newMonth)

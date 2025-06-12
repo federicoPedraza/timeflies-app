@@ -15,8 +15,8 @@ const router = useRouter()
 const settingsStore = useSettingsStore()
 
 const getVisibleDateRange = () => {
-  const monthStart = getStartOfMonth(calendarStore.visibleMonth)
-  const monthEnd = getEndOfMonth(calendarStore.visibleMonth)
+  const monthStart = getStartOfMonth(calendarStore.visibleMonth, settingsStore.timezone)
+  const monthEnd = getEndOfMonth(calendarStore.visibleMonth, settingsStore.timezone)
 
   return {
     start: startOfWeek(monthStart, { weekStartsOn: settingsStore.startsWithSunday ? 0 : 1 }),

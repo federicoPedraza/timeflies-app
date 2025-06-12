@@ -29,8 +29,8 @@ export const useEventStore = defineStore('events', () => {
     const calendarStore = useCalendarStore()
     const settingsStore = useSettingsStore()
     if (!start || !end) {
-      const monthStart = getStartOfMonth(calendarStore.visibleMonth)
-      const monthEnd = getEndOfMonth(calendarStore.visibleMonth)
+      const monthStart = getStartOfMonth(calendarStore.visibleMonth, settingsStore.timezone)
+      const monthEnd = getEndOfMonth(calendarStore.visibleMonth, settingsStore.timezone)
 
       start = startOfWeek(monthStart, { weekStartsOn: settingsStore.startsWithSunday ? 0 : 1 })
       end = endOfWeek(monthEnd, { weekStartsOn: settingsStore.startsWithSunday ? 0 : 1 })
