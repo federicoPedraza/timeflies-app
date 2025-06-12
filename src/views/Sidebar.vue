@@ -57,7 +57,7 @@ const handleMoreClick = () => {
       <SidebarHeaderButton icon="settings-icon" alt="Open settings menu" @click="handleSettingsClick" />
       <SidebarHeaderButton icon="logout-icon" alt="Logout" @click="handleLogoutClick" />
     </div>
-    <div class="flex flex-col gap-2 mt-0 sm:mt-12">
+    <div class="flex flex-col h-full justify-between gap-4 md:gap-8 mt-4 sm:mt-12">
       <SidebarMonth :month="calendarStore.visibleMonth" />
       <SidebarCalendar />
       <SidebarSummary @scroll-to-hour="handleScrollToHour" />
