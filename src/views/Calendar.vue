@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, watchEffect, watch, nextTick, computed } from 'vue'
-import { startOfWeek, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, isBefore, isSameMonth } from 'date-fns'
+import { ref, onMounted, watchEffect, watch, nextTick, computed, onUnmounted } from 'vue'
+import { startOfWeek, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, isBefore, subDays, addDays } from 'date-fns'
 import CalendarHour from '../components/calendar/CalendarHour.vue'
 import CalendarCell from '../components/calendar/CalendarCell.vue'
 import CalendarEvent from '../components/calendar/CalendarEvent.vue'
@@ -20,13 +20,39 @@ const getDayName = (date: Date) => calendarStore.dayNames[date.getDay()]
 
 const currentWeekStart = ref(startOfWeek(calendarStore.today, { weekStartsOn: startsWithSunday ? 0 : 1 }))
 const dateObjects = ref<Date[]>([])
+const headerDateObjects = ref<Date[]>([])
+
+const updateDateObjects = () => {
+  // if VISIBLE_DAYS > 1, show all days in the month
+  // if VISIBLE_DAYS === 1, show only the current day
+  if (VISIBLE_DAYS.value > 1) {
+    dateObjects.value = generateMonthRange(calendarStore.visibleMonth)
+    headerDateObjects.value = generateMonthRange(calendarStore.visibleMonth)
+  } else {
+    if (!selectedHeaderDay.value) {
+      selectedHeaderDay.value = calendarStore.today
+    }
+    dateObjects.value = [selectedHeaderDay.value]
+    // show previous 3 and next 3 days
+    headerDateObjects.value = [
+      subDays(selectedHeaderDay.value, 3),
+      subDays(selectedHeaderDay.value, 2),
+      subDays(selectedHeaderDay.value, 1),
+      selectedHeaderDay.value,
+      addDays(selectedHeaderDay.value, 1),
+      addDays(selectedHeaderDay.value, 2),
+      addDays(selectedHeaderDay.value, 3),
+    ]
+  }
+}
 
 watch(
   () => calendarStore.visibleMonth,
   (newMonth, oldMonth) => {
     const isPreviousMonth = oldMonth && isBefore(newMonth, oldMonth)
 
-    dateObjects.value = generateMonthRange(newMonth)
+    updateDateObjects()
+
     nextTick(() => {
       if (!isPreviousMonth) {
         scrollToToday(-1)
@@ -66,6 +92,10 @@ const isToday = (date: Date) => {
   return settingsStore.toMoment(date).isSame(settingsStore.toMoment(new Date()), 'day')
 }
 
+const isHeaderDay = (date: Date) => {
+  return selectedHeaderDay.value && isSameDay(date, selectedHeaderDay.value)
+}
+
 const calendarContainerRef = ref<HTMLElement | null>(null)
 const bodyScrollContainer = ref<HTMLElement | null>(null)
 const headerScrollContainer = ref<HTMLElement | null>(null)
@@ -87,14 +117,37 @@ const updateCurrentHourFraction = () => {
 }
 
 const dayWidth = ref(144)
-const VISIBLE_DAYS = 7
-const calendarWidth = ref(`${dayWidth.value * VISIBLE_DAYS}px`)
+const windowWidth = ref(window.innerWidth)
+
+const updateWindowWidth = () => {
+  recalculateDayWidth()
+  updateDateObjects()
+  windowWidth.value = window.innerWidth
+}
+
+const VISIBLE_DAYS = computed(() => {
+  const width = windowWidth.value
+  if (width < 640) return 1
+  if (width < 1280) return 2
+  if (width < 1536) return 4
+  return 7
+})
+
+const HEADER_DAYS = computed(() => {
+  return VISIBLE_DAYS.value > 1 ? VISIBLE_DAYS.value : 1
+})
+
+const calendarWidth = computed(() => `${dayWidth.value * VISIBLE_DAYS.value}px`)
+const headerWidth = computed(() => `${dayWidth.value * HEADER_DAYS.value}px`)
+
+watch(VISIBLE_DAYS, () => {
+  recalculateDayWidth()
+})
 
 const recalculateDayWidth = () => {
   if (calendarContainerRef.value) {
     const containerWidth = calendarContainerRef.value.clientWidth
-    dayWidth.value = containerWidth / VISIBLE_DAYS
-    calendarWidth.value = `${dayWidth.value * VISIBLE_DAYS}px`
+    dayWidth.value = containerWidth / VISIBLE_DAYS.value
   }
 }
 
@@ -119,6 +172,25 @@ const scrollToToday = (offset: number = 0) => {
   const today = calendarStore.today
   scrollToDay(dateObjects.value.findIndex(d => isSameDay(d, today)) + offset)
 }
+
+const displayDay = (date: Date) => {
+  // only available if VISIBLE_DAYS === 1
+  if (VISIBLE_DAYS.value === 1) {
+    const dayIndex = dateObjects.value.findIndex(d => isSameDay(d, date))
+    if (dayIndex === -1) return
+    selectedDay.value = date
+  }
+
+  selectedHeaderDay.value = date
+}
+
+const updateSelectedHeaderDay = (date: Date) => {
+  selectedHeaderDay.value = date
+  updateDateObjects()
+}
+
+const selectedDay = ref<Date | null>(null)
+const selectedHeaderDay = ref<Date | null>(null)
 
 const scrollToDay = (dayIndex: number) => {
   const el = bodyScrollContainer.value
@@ -340,20 +412,24 @@ const overlappingMeta = computed(() => {
 });
 
 onMounted(() => {
+  window.addEventListener('resize', updateWindowWidth)
   recalculateDayWidth()
   updateCurrentHourFraction()
   setInterval(updateCurrentHourFraction, 60000)
-  window.addEventListener('resize', recalculateDayWidth)
   currentWeekStart.value = startOfWeek(calendarStore.today, { weekStartsOn: startsWithSunday ? 0 : 1 })
-  dateObjects.value = generateMonthRange(calendarStore.visibleMonth)
+  updateDateObjects()
   requestAnimationFrame(() => {
     if (calendarStore.lastFocusedDate) {
       scrollToDay(dateObjects.value.findIndex(d => isSameDay(d, calendarStore.lastFocusedDate!)))
     } else {
-      scrollToToday(-1) // we do -1 because we want to see at least the past day
+      scrollToToday(VISIBLE_DAYS.value > 1 ? -1 : 0)
       scrollToHour(getStartingVisibleHour())
     }
   })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateWindowWidth)
 })
 
 const scrollToHour = (hour: number, highlightEventId: string | null = null) => {
@@ -361,7 +437,7 @@ const scrollToHour = (hour: number, highlightEventId: string | null = null) => {
   const elH = leftHourColumnRef.value
   const elR = rightHourColumnRef.value
   if (elB && elH && elR) {
-  const hourHeight = elH.scrollHeight / 24
+    const hourHeight = elH.scrollHeight / 24
     elB.scrollTop = hourHeight * (hour - 1)
     elH.scrollTop = hourHeight * (hour - 1)
     elR.scrollTop = hourHeight * (hour - 1)
@@ -373,7 +449,7 @@ const scrollToHour = (hour: number, highlightEventId: string | null = null) => {
 
 const selectedEvent = ref<TimeEvent & { x: number; y: number } | null>(null)
 
-  const highlightGhostEvent = () => {
+const highlightGhostEvent = () => {
   const ghost = calendarStore.ghostEvent
   const container = bodyScrollContainer.value
   if (!ghost || !container) return
@@ -536,9 +612,15 @@ defineExpose({ scrollToHour, highlightEvent })
 
 <template>
   <!-- GRID CONTAINER: LEFT HOUR | CALENDAR | RIGHT HOUR -->
-  <div class="grid grid-cols-[auto_1fr_auto] h-screen w-full overflow-hidden p-4 gap-x-0">
+  <div class="grid h-screen w-full overflow-hidden p-1 md:p-2 gap-x-0"
+  :class="[
+    VISIBLE_DAYS > 1 ? 'grid-cols-[auto_1fr_auto]' : 'grid-cols-[1fr]'
+  ]">
     <!-- LEFT FIXED HOUR COLUMN -->
-    <div class="relative w-12  z-10 overflow-hidden"
+    <div class="w-10 sm:w-12 z-10 overflow-hidden"
+      :class="[
+        VISIBLE_DAYS > 1 ? 'relative' : 'absolute'
+      ]"
       style="mask-image: linear-gradient(to bottom, transparent 0px, black 64px); -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 64px);">
       <div ref="leftHourColumnRef" class="flex flex-col overflow-y-auto h-full scrollbar-none">
         <div class="h-[64px] shrink-0"></div>
@@ -549,9 +631,9 @@ defineExpose({ scrollToHour, highlightEvent })
     </div>
 
     <!-- CENTER CALENDAR COLUMN -->
-    <div class="flex flex-col" ref="calendarContainerRef">
-      <!-- HEADER SCROLL AREA -->
-      <div ref="headerScrollContainer" class="overflow-x-hidden scrollbar-none" :style="{ width: calendarWidth }">
+    <div class="flex flex-col w-full " ref="calendarContainerRef">
+      <!-- DISPLAY ALL VISIBLE DAYS-->
+      <div v-if="VISIBLE_DAYS > 1" ref="headerScrollContainer" class="overflow-x-hidden scrollbar-none" :style="{ width: headerWidth }">
         <div class="flex w-max">
           <div v-for="(date, index) in dateObjects" :key="'head-' + moment(date).format('YYYY-MM-DD')"
             :style="{ width: `${dayWidth}px` }">
@@ -568,9 +650,30 @@ defineExpose({ scrollToHour, highlightEvent })
           </div>
         </div>
       </div>
+      <!-- DISPLAY 7 DAYS -->
+      <div v-else ref="headerScrollContainer" class="overflow-x-hidden scrollbar-none w-full">
+        <div class="flex justify-between w-full">
+          <div v-for="(date, index) in headerDateObjects" :key="'head-' + moment(date).format('YYYY-MM-DD')" class="w-full">
+            <CalendarCell
+              @click="updateSelectedHeaderDay(date)"
+              class="hover:cursor-pointer"
+              :class="[
+              'h-[64px] border-[#E0E0E0] border-b-[1px]',
+              isToday(date) ? 'bg-[#EFF6FF]' : isWeekend(getDayName(date)) ? 'bg-[#FAFAFA]' : 'bg-white',
+              index === 0 ? 'border-l-[0px]' : 'border-l-[1px]'
+            ]">
+              <div class="flex flex-col justify-center items-center md:items-start md:justify-center  pt-1 pr-2 pb-4 pl-2">
+                <span class="text-[10px] font-bold text-[#71717A]">{{ getDayName(date) }}</span>
+                <span class="text-xl text-black">{{ settingsStore.toMoment(date).format('DD') }}</span>
+                <div v-if="isHeaderDay(date)" class="h-[6px] w-[6px] bg-[#0EA5E9] rounded-full"></div>
+              </div>
+            </CalendarCell>
+          </div>
+        </div>
+      </div>
 
       <!-- BODY SCROLL AREA -->
-      <div ref="bodyScrollContainer" class="overflow-x-auto overflow-y-auto calendar-body-scroll"
+      <div ref="bodyScrollContainer" class="overflow-x-auto overflow-y-auto calendar-body-scroll bg-red-500"
         :style="{ height: 'calc(100vh - 72px)', width: calendarWidth }">
         <div class="w-max relative">
           <div v-for="hour in hours" :key="'row-' + hour" class="flex h-[72px]">
@@ -600,45 +703,33 @@ defineExpose({ scrollToHour, highlightEvent })
                 <!-- EVENTS -->
                 <template v-for="(event) in getEventsForCell(date, hour)" :key="event.id">
                   <CalendarEvent v-show="!calendarStore.ghostEvent || calendarStore.ghostEvent.id !== event.id"
-                    variant="default"
-                    :highlighted="selectedEvent?.id === event.id"
-                    :event="event"
-                    :isMultiDay="isMultiDay(event)"
-                    :isGhostEvent="false"
-                    :data-event-id="event.id"
+                    variant="default" :highlighted="selectedEvent?.id === event.id" :event="event"
+                    :isMultiDay="isMultiDay(event)" :isGhostEvent="false" :data-event-id="event.id"
                     :style="getEventStyle(event, date)"
                     :overlappingEventsCount="overlappingMeta.get(moment(date).format('YYYY-MM-DD'))?.get(event.id)?.count ?? 1"
                     :eventIndex="overlappingMeta.get(moment(date).format('YYYY-MM-DD'))?.get(event.id)?.index ?? 0"
-                    @click-event="highlightEvent"
-                    @resize:start="(minutes) => onResizeEvent(event, minutes, true)"
+                    @click-event="highlightEvent" @resize:start="(minutes) => onResizeEvent(event, minutes, true)"
                     @resize:end="(minutes) => onResizeEvent(event, minutes, false)"
                     @resize:both="(minutes) => onResizeBothEvent(event, minutes)" />
                 </template>
                 <!-- GHOST EVENT -->
-                <CalendarEvent
-                v-show="shouldRenderGhostEvent(calendarStore.ghostEvent!, date, hour)"
-                v-if="calendarStore.ghostEvent"
-                variant="edit"
-                :event="calendarStore.ghostEvent"
-                :isMultiDay="isMultiDay(calendarStore.ghostEvent)"
-                :highlighted="selectedEvent?.id === calendarStore.ghostEvent?.id"
-                :isGhostEvent="true"
-                :data-event-id="calendarStore.ghostEvent?.id"
-                :style="getEventStyle(calendarStore.ghostEvent, date)"
-                :overlappingEventsCount="1"
-                :eventIndex="0"
-                @click-event="highlightGhostEvent"
-                @resize:start="(minutes) => onResizeGhostEvent(minutes, true)"
-                @resize:end="(minutes) => onResizeGhostEvent(minutes, false)"
-                @resize:both="(minutes) => onResizeGhostEvent(minutes, true)"
-              />
+                <CalendarEvent v-show="shouldRenderGhostEvent(calendarStore.ghostEvent!, date, hour)"
+                  v-if="calendarStore.ghostEvent" variant="edit" :event="calendarStore.ghostEvent"
+                  :isMultiDay="isMultiDay(calendarStore.ghostEvent)"
+                  :highlighted="selectedEvent?.id === calendarStore.ghostEvent?.id" :isGhostEvent="true"
+                  :data-event-id="calendarStore.ghostEvent?.id" :style="getEventStyle(calendarStore.ghostEvent, date)"
+                  :overlappingEventsCount="1" :eventIndex="0" @click-event="highlightGhostEvent"
+                  @resize:start="(minutes) => onResizeGhostEvent(minutes, true)"
+                  @resize:end="(minutes) => onResizeGhostEvent(minutes, false)"
+                  @resize:both="(minutes) => onResizeGhostEvent(minutes, true)" />
               </CalendarCell>
             </div>
           </div>
           <div v-if="selectedEvent" class="absolute inset-0 z-[99]" @click="closeEventPopup">
           </div>
           <EventPopup v-if="selectedEvent" :event="selectedEvent"
-              :isGhostEvent="selectedEvent.id === calendarStore.ghostEvent?.id" :close="closeEventPopup" @delete="onDeleteEvent" :style="{
+            :isGhostEvent="selectedEvent.id === calendarStore.ghostEvent?.id" :close="closeEventPopup"
+            @delete="onDeleteEvent" :style="{
               position: 'absolute',
               left: `${selectedEvent.x}px`,
               top: `${selectedEvent.y}px`,
@@ -649,7 +740,7 @@ defineExpose({ scrollToHour, highlightEvent })
     </div>
 
     <!-- RIGHT FIXED HOUR COLUMN -->
-    <div class="relative w-24 z-10 overflow-hidden scrollbar-none"
+    <div v-if="VISIBLE_DAYS > 2" class="relative w-24 z-10 overflow-hidden scrollbar-none"
       style="mask-image: linear-gradient(to bottom, transparent 0px, black 64px); -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 64px);">
       <div ref="rightHourColumnRef" class="flex flex-col overflow-y-auto h-full scrollbar-none">
         <div class="h-[64px] shrink-0"></div>
