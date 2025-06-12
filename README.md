@@ -1,33 +1,76 @@
-# .
+# Timeflies
 
-This template should help get you started developing with Vue 3 in Vite.
+Timeflies is a modern, responsive calendar application built with Vue 3 and TypeScript. It offers a seamless experience for managing your schedule across different time zones and devices.
 
-## Recommended IDE Setup
+## Features
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- 📅 **Responsive Calendar View**: Adapts to your screen size, showing multiple days on desktop and a single day on mobile
+- 🌍 **Timezone Support**: View and manage events in your local timezone
+- 🎨 **Modern UI**: Clean, intuitive interface with smooth animations
+- 📱 **Mobile Design**: Optimized experience across all devices
+- 🔒 **User Authentication**: Secure login and signup system
+- ⚡ **Real-time Updates**: Instant feedback on all actions
+- 🎯 **Event Management**: Create, edit, and delete events with ease
 
-## Type Support for `.vue` Imports in TS
+## Tech Stack
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+- **Frontend Framework**: Vue 3 with Composition API
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **State Management**: Pinia
+- **Routing**: Vue Router
+- **Build Tool**: Vite
+- **Package Manager**: npm
 
-## Customize configuration
+## Prerequisites
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+Before you begin, ensure you have the following installed:
+- Node.js (v16 or higher)
 
-## Project Setup
+## Getting Started
 
-```sh
-npm install
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/federicoPedraza/timeflies-app
+   cd timeflies-app
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Build for production**
+   ```bash
+   npm build
+   ```
+
+## Project Structure
+
+```
+timeflies/
+├── src/
+│   ├── assets/          # Static assets (images, icons)
+│   ├── components/      # Reusable Vue components
+│   ├── stores/          # Pinia stores
+│   ├── views/           # Page components
+│   ├── router/          # Vue Router configuration
+│   ├── types/           # TypeScript type definitions
+│   └── utils/           # Utility functions
+├── public/              # Public static files
+└── tests/               # Test files
 ```
 
-### Compile and Hot-Reload for Development
+## Development
 
-```sh
-npm run dev
-```
+### Key Components
 
-### Type-Check, Compile and Minify for Production
-
-```sh
-npm run build
-```
+- **Calendar View**: Responsive calendar implementation in `src/views/Calendar.vue`
+- **Event Management**: Event creation and editing in `src/components/events/`
+- **Authentication**: User authentication system in `src/views/Auth.vue`
+- **Settings**: User preferences and timezone settings in `src/views/ConfigTime.vue`
