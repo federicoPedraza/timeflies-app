@@ -11,6 +11,7 @@ const props = defineProps<{
   isGhostEvent: boolean,
   close: () => void
   onDelete: () => void
+  isMobile: boolean
 }>()
 
 const emit = defineEmits<{
@@ -51,14 +52,6 @@ onMounted(() => {
 
 const getEventDayName = (date: Date) => {
   return formatDate(date, 'EEEE')
-}
-
-const getEventDay = (date: Date) => {
-  return formatDate(date, 'd')
-}
-
-const getEventMonth = (date: Date) => {
-  return formatDate(date, 'MMMM')
 }
 
 const getEventDuration = (start: Date, end: Date) => {
@@ -414,8 +407,11 @@ const saveChanges = async () => {
 </script>
 
 <template>
-  <div ref="popupRef" class="absolute z-[1000] bg-white p-4 rounded-lg shadow-lg border border-gray-200 w-[360px] h-1/4 event-popup focus:outline-none"
-    :style="{ left: `${event.x}px`, top: `${event.y}px` }"
+  <div ref="popupRef" class="absolute z-[1000] bg-white p-4 rounded-lg shadow-lg border border-gray-200 event-popup focus:outline-none"
+    :class="[
+      isMobile ? 'w-full h-1/4' : 'w-[360px] h-1/4'
+    ]"
+    :style="isMobile ? { top: `${event.y}px` } : { left: `${event.x}px`, top: `${event.y}px` }"
     @keydown.escape="close"
     tabindex="-1">
     <div class="flex flex-col justify-between items-start h-full gap-2">

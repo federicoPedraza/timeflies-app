@@ -617,10 +617,7 @@ defineExpose({ scrollToHour, highlightEvent })
     VISIBLE_DAYS > 1 ? 'grid-cols-[auto_1fr_auto]' : 'grid-cols-[1fr]'
   ]">
     <!-- LEFT FIXED HOUR COLUMN -->
-    <div class="w-10 sm:w-12 z-10 overflow-hidden"
-      :class="[
-        VISIBLE_DAYS > 1 ? 'relative' : 'absolute'
-      ]"
+    <div class="w-10 sm:w-12 z-10 overflow-hidden relative"
       style="mask-image: linear-gradient(to bottom, transparent 0px, black 64px); -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 64px);">
       <div ref="leftHourColumnRef" class="flex flex-col overflow-y-auto h-full scrollbar-none">
         <div class="h-[64px] shrink-0"></div>
@@ -673,7 +670,7 @@ defineExpose({ scrollToHour, highlightEvent })
       </div>
 
       <!-- BODY SCROLL AREA -->
-      <div ref="bodyScrollContainer" class="overflow-x-auto overflow-y-auto calendar-body-scroll bg-red-500"
+      <div ref="bodyScrollContainer" class="overflow-x-auto overflow-y-auto calendar-body-scroll"
         :style="{ height: 'calc(100vh - 72px)', width: calendarWidth }">
         <div class="w-max relative">
           <div v-for="hour in hours" :key="'row-' + hour" class="flex h-[72px]">
@@ -688,6 +685,9 @@ defineExpose({ scrollToHour, highlightEvent })
                   hasEventOnFullHour(date, hour + 1) ? 'border-b-transparent' : 'border-b-[#E0E0E0]',
                   'border-l-[#E0E0E0]'
                 ]" @click="(e) => onCellClick(date, hour, e)">
+                 <div class="absolute top-5 right-2 z-10">
+                   <CalendarHour  :timeNotation="timeNotation" :hour="hour" containerClass="justify-start whitespace-nowrap" />
+                 </div>
                 <!-- FINE LINE -->
                 <template v-if="!hasEventCrossingHalfHour(date, hour)">
                   <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-[#F7F7F7]"></div>
@@ -732,9 +732,9 @@ defineExpose({ scrollToHour, highlightEvent })
             @delete="onDeleteEvent" :style="{
               position: 'absolute',
               left: `${selectedEvent.x}px`,
-              top: `${selectedEvent.y}px`,
+              top: `${selectedEvent.y + (VISIBLE_DAYS === 1 ? 72 : 0)}px`,
               zIndex: 100
-            }" @update:event="(updatedEvent) => selectedEvent = updatedEvent" />
+            }" @update:event="(updatedEvent) => selectedEvent = updatedEvent" :isMobile="VISIBLE_DAYS === 1"/>
         </div>
       </div>
     </div>
