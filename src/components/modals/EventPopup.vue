@@ -4,6 +4,7 @@ import { useEventStore, type TimeEvent } from '@/stores/events'
 import { useSettingsStore } from '@/stores/settings';
 import { differenceInMinutes, formatDate, parseISO, getDaysInMonth } from 'date-fns';
 import { computed, nextTick, ref, onMounted } from 'vue';
+import moment from 'moment-timezone';
 
 const props = defineProps<{
   event: TimeEvent & { x: number; y: number },
@@ -117,38 +118,41 @@ const toggleDeleteMode = () => {
   isTryingToDelete.value = !isTryingToDelete.value
 }
 
-const endDayChanges = ref({
-  day: props.event.end.getDate().toString(),
-  month: (props.event.end.getMonth() + 1).toString().padStart(2, '0'),
-  year: props.event.end.getFullYear().toString(),
-  time: props.event.end.toTimeString().slice(0, 5)
-})
+const startMoment = settingsStore.toMoment(props.event.start)
+const endMoment = settingsStore.toMoment(props.event.end)
 
 const startDayChanges = ref({
-  day: props.event.start.getDate().toString(),
-  month: (props.event.start.getMonth() + 1).toString().padStart(2, '0'),
-  year: props.event.start.getFullYear().toString(),
-  time: props.event.start.toTimeString().slice(0, 5)
+  day: startMoment.date().toString(),
+  month: (startMoment.month() + 1).toString().padStart(2, '0'),
+  year: startMoment.year().toString(),
+  time: startMoment.format('HH:mm')
+})
+
+const endDayChanges = ref({
+  day: endMoment.date().toString(),
+  month: (endMoment.month() + 1).toString().padStart(2, '0'),
+  year: endMoment.year().toString(),
+  time: endMoment.format('HH:mm')
 })
 
 const buildEndTime = computed(() => {
   const { year, month, day, time } = endDayChanges.value
-  const paddedMonth = month.padStart(2, '0')
-  const paddedDay = day.padStart(2, '0')
-  const iso = `${year}-${paddedMonth}-${paddedDay}T${time || '00:00'}`
+  if (!year || !month || !day || !time) return null
 
-  const date = parseISO(iso)
-  return isNaN(date.getTime()) ? null : date
+  const datetime = `${year}-${month}-${day}T${time}`
+  const momentDate = moment.tz(datetime, 'YYYY-MM-DDTHH:mm', settingsStore.timezone)
+  return momentDate.isValid() ? momentDate.toDate() : null
 })
 
 const buildStartTime = computed(() => {
   const { year, month, day, time } = startDayChanges.value
-  const paddedMonth = month.padStart(2, '0')
-  const paddedDay = day.padStart(2, '0')
-  const iso = `${year}-${paddedMonth}-${paddedDay}T${time || '00:00'}`
-  const date = parseISO(iso)
-  return isNaN(date.getTime()) ? null : date
+  if (!year || !month || !day || !time) return null
+
+  const datetime = `${year}-${month}-${day}T${time}`
+  const momentDate = moment.tz(datetime, 'YYYY-MM-DDTHH:mm', settingsStore.timezone)
+  return momentDate.isValid() ? momentDate.toDate() : null
 })
+
 
 const safeStartDate = computed(() => {
   const date = buildStartTime.value
@@ -166,10 +170,13 @@ const safeMaxStartDay = computed(() => {
 const validStartTime = computed(() => {
   const date = safeStartDate.value
   if (!date) return false
-  const yyyy = date.getFullYear().toString()
-  const mm = (date.getMonth() + 1).toString().padStart(2, '0')
-  const dd = date.getDate().toString()
-  const hhmm = date.toTimeString().slice(0, 5)
+
+  const m = moment.tz(date, settingsStore.timezone)
+
+  const yyyy = m.format('YYYY')
+  const mm = m.format('MM')
+  const dd = m.format('D')
+  const hhmm = m.format('HH:mm')
 
   return (
     startDayChanges.value.year === yyyy &&
@@ -178,6 +185,7 @@ const validStartTime = computed(() => {
     startDayChanges.value.time === hhmm
   )
 })
+
 
 const changes = ref({
   title: props.event.title,
@@ -228,10 +236,20 @@ const validEndTime = computed(() => {
   const date = safeEndDate.value
   if (!date) return false
 
-  const yyyy = date.getFullYear().toString()
-  const mm = (date.getMonth() + 1).toString().padStart(2, '0')
-  const dd = date.getDate().toString()
-  const hhmm = date.toTimeString().slice(0, 5)
+  const m = moment.tz(date, settingsStore.timezone)
+
+  const yyyy = m.format('YYYY')
+  const mm = m.format('MM')
+  const dd = m.format('D') // Not zero-padded on purpose to match `endDayChanges`
+  const hhmm = m.format('HH:mm')
+
+  console.log('validEndTime', {
+    date: endDayChanges.value.day === dd,
+    yyyy: endDayChanges.value.year === yyyy,
+    mm: endDayChanges.value.month === mm,
+    dd: endDayChanges.value.day === dd,
+    hhmm: endDayChanges.value.time === hhmm
+  })
 
   return (
     endDayChanges.value.year === yyyy &&
@@ -240,6 +258,7 @@ const validEndTime = computed(() => {
     endDayChanges.value.time === hhmm
   )
 })
+
 
 const isChanged = (field: 'title' | 'description' | 'end' | 'start') => {
   if (field === 'end') {
@@ -265,18 +284,22 @@ const titleBorderClass = computed(() => {
 })
 
 const startBorderClass = computed(() => {
+  const changed = isChanged('start')
+  const valid = validStartTime.value
   return {
-    'border-l-gray-300': !isChanged('start'),
-    'border-l-green-500': isChanged('start') && !validStartTime,
-    'border-l-red-500': !validStartTime
+    'border-l-gray-300': !changed,
+    'border-l-green-500': changed && valid,
+    'border-l-red-500': changed && !valid
   }
 })
 
 const endBorderClass = computed(() => {
+  const changed = isChanged('end')
+  const valid = validEndTime.value
   return {
-    'border-l-gray-300': !isChanged('end'),
-    'border-l-green-500': isChanged('end') && !validEndTime,
-    'border-l-red-500': !validEndTime
+    'border-l-gray-300': !changed,
+    'border-l-green-500': changed && valid,
+    'border-l-red-500': changed && !valid
   }
 })
 
@@ -321,7 +344,17 @@ const handleStartInput = (field: 'day' | 'month' | 'time', value: string | numbe
 }
 
 const canBeSaved = computed(() => {
-  return hasChanges.value && !titleHasError() && !descriptionHasError() && validStartTime.value && validEndTime.value
+  console.log('canBeSaved', {
+  hasChanges: hasChanges.value,
+  validStart: validStartTime.value,
+  validEnd: validEndTime.value,
+  titleError: titleHasError()
+})
+  return hasChanges.value &&
+         !titleHasError() &&
+         !descriptionHasError() &&
+         validStartTime.value &&
+         validEndTime.value
 })
 
 const deleteEvent = async () => {
