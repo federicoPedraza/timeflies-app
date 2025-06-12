@@ -2,7 +2,7 @@
 import Sidebar from './Sidebar.vue'
 import Calendar from './Calendar.vue'
 import { useEventStore } from '@/stores/events'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useCalendarStore } from '@/stores/calendar'
 import { getStartOfMonth, getEndOfMonth } from '@/utils/dates/date-formatter'
 import { useRoute } from 'vue-router'
@@ -15,6 +15,7 @@ import { useSettingsStore } from '@/stores/settings'
 const eventStore = useEventStore()
 const calendarStore = useCalendarStore()
 const settingsStore = useSettingsStore()
+const sidebarRef = ref<InstanceType<typeof Sidebar>>()
 
 const getVisibleDateRange = () => {
   const monthStart = getStartOfMonth(calendarStore.visibleMonth, settingsStore.timezone)
@@ -70,6 +71,12 @@ onMounted(() => {
 let intervalId: ReturnType<typeof setInterval>
 
 const isSidebarOpen = ref(false)
+const isConfigModalOpen = ref<boolean>(false)
+
+const handleConfigModalOpen = (open: boolean) => {
+  console.log('handleConfigModalOpen', open)
+  isConfigModalOpen.value = open
+}
 
 function toggleSidebar() {
   isSidebarOpen.value = !isSidebarOpen.value
@@ -84,13 +91,14 @@ onUnmounted(() => {
   <div class="flex h-screen overflow-hidden ">
     <!-- Desktop sidebar (md+) -->
     <aside class="hidden md:flex md:flex-col md:w-auto  bg-bland-dark text-white p-6">
-      <Sidebar />
+      <Sidebar @config-modal-open="handleConfigModalOpen" />
     </aside>
 
     <!-- Main area -->
     <div class="flex-1 relative flex flex-col">
       <!-- Mobile toggle button -->
       <button
+        v-if="!isConfigModalOpen"
         @click="toggleSidebar"
         class="fixed top-[30px]  right-6 z-[51] md:hidden  bg-bland-dark text-white rounded-lg shadow focus:outline-none focus:ring"
         aria-label="Toggle menu"
@@ -126,7 +134,7 @@ onUnmounted(() => {
                p-3 sm:p-4"
         :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full'"
       >
-        <Sidebar />
+        <Sidebar @config-modal-open="handleConfigModalOpen" />
       </aside>
 
       <!-- Main content area -->

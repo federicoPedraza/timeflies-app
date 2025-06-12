@@ -109,7 +109,7 @@ onUnmounted(() => {
             <div class="relative" ref="dropdownRef">
                 <button
                     @click="toggleDropdown"
-                    class="w-1/4 p-2 bg-white rounded-md border border-gray-300 text-left flex justify-between items-center"
+                    class="w-full md:w-1/4 p-2 bg-white rounded-md border border-gray-300 text-left flex justify-between items-center"
                 >
                     <span class="text-sm">{{ formatTimezoneDisplay(timezone) }}</span>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,19 +138,19 @@ onUnmounted(() => {
                     </div>
                 </div>
             </div>
-            <button @click="handleReset" class="text-sm text-left w-1/3  text-gray-500 hover:text-gray-900 hover:underline">Reset to local timezone</button>
+            <button @click="handleReset" class="text-sm text-left w-full md:w-1/3  text-gray-500 hover:text-gray-900 hover:underline">Reset to local timezone</button>
             <div class="w-full h-[1px] my-4 bg-gray-200"></div>
         </div>
         <div class="flex flex-col justify-start gap-2">
             <h3 class="text-sm font-semibold">Preferences</h3>
             <span class="text-sm text-gray-500">Select your time notation and week start.</span>
             <div class="flex flex-col justify-start items-start my-2">
-                <div class="flex flex-row justify-between items-center w-full gap-8">
+                <div class="flex flex-col md:flex-row justify-between items-center w-full gap-4">
                     <label class="flex flex-row justify-start items-center gap-2 w-full">
                         <input type="checkbox" v-model="settingsStore.startsWithSunday" @change="(e) => handleWeekStartChange((e.target as HTMLInputElement).checked)" />
                         <div class="flex flex-row justify-between items-center w-full">
                             <span class="text-sm text-gray-500">Week starts on Sunday</span>
-                            <div class="flex flex-row justify-start items-center gap-1 text-xs">
+                            <div class="flex-row justify-start items-center gap-1 text-xs hidden md:flex">
                                 <template v-for="(day, index) in calendarStore.getDayNamesInOrder()" :key="day">
                                     <span :class="index === 0 || index === calendarStore.getDayNamesInOrder().length - 1 ? 'text-gray-600' : 'text-gray-400'">{{ day }}</span>
                                     <span v-if="index < calendarStore.getDayNamesInOrder().length - 1" class="text-gray-400"> | </span>
@@ -158,6 +158,12 @@ onUnmounted(() => {
                             </div>
                         </div>
                     </label>
+                    <div class="flex flex-row md:hidden justify-start items-start w-full gap-1 text-xs">
+                        <template v-for="(day, index) in calendarStore.getDayNamesInOrder()" :key="day">
+                            <span :class="index === 0 || index === calendarStore.getDayNamesInOrder().length - 1 ? 'text-gray-600' : 'text-gray-400'">{{ day }}</span>
+                            <span v-if="index < calendarStore.getDayNamesInOrder().length - 1" class="text-gray-400"> | </span>
+                        </template>
+                    </div>
                 </div>
             </div>
         </div>

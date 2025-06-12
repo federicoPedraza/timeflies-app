@@ -114,7 +114,7 @@ const handleSavePassword = () => {
             <h3 class="text-sm font-semibold">Security</h3>
             <span class="text-sm text-gray-500">You must enter your password to change it.</span>
             <div class="flex flex-col justify-start items-start gap-2 w-full">
-                <div class="flex flex-col w-1/3">
+                <div class="flex flex-col w-full md:w-1/3">
                     <span class="text-sm text-gray-500">Current password</span>
                     <div class="flex flex-row items-center justify-start gap-2 w-full relative">
                         <input :type="seePassword ? 'text' : 'password'" placeholder=""
@@ -130,7 +130,7 @@ const handleSavePassword = () => {
                         </button>
                     </div>
                 </div>
-                <div class="flex flex-col w-1/3">
+                <div class="flex flex-col w-full md:w-1/3">
                     <span class="text-sm text-gray-500">New password</span>
                     <div class="flex flex-row items-center justify-start gap-2 w-full relative">
                         <input :type="seeNewPassword ? 'text' : 'password'" placeholder=""
@@ -146,7 +146,7 @@ const handleSavePassword = () => {
                         </button>
                     </div>
                 </div>
-                <div class="flex flex-col w-1/3">
+                <div class="flex flex-col w-full md:w-1/3">
                     <span class="text-sm text-gray-500">Confirm password</span>
                     <div class="flex flex-row items-center justify-start gap-2 w-full relative">
                         <input :type="seeConfirmPassword ? 'text' : 'password'" placeholder=""
@@ -164,7 +164,7 @@ const handleSavePassword = () => {
                 </div>
 
                 <div
-                    class="bg-gray-100 border w-1/3 rounded-md flex flex-col items-start justify-center text-sm px-4 py-2 gap-2 shadow-md">
+                    class="bg-gray-100 border w-full md:w-1/3 rounded-md flex flex-col items-start justify-center text-sm px-4 py-4 md:py-2 gap-2 shadow-md">
                     <div class="flex items-center justify-center gap-2">
                         <img v-if="!validatePasswordStrength()" src="@/assets/icons/badge-minus.svg"
                             alt="password too weak" class="w-4 h-4" />
@@ -201,7 +201,7 @@ const handleSavePassword = () => {
                 <span class="text-sm text-gray-500">If you want to delete your account, <span
                         class="underline hover:text-gray-700 cursor-pointer"
                         @click="deleteWarning = !deleteWarning">click here</span></span>
-                <div v-if="deleteWarning" class="w-full h-[1px] my-4  bg-gray-200 my-2"></div>
+                <div v-if="deleteWarning" class="w-full h-[1px]  bg-gray-200 my-2"></div>
                 <div v-if="deleteWarning" class="flex flex-col gap-8">
                     <div class="flex flex-col">
                         <h2 class="text-sm font-semibold mb-2">Delete account</h2>
@@ -213,14 +213,14 @@ const handleSavePassword = () => {
                         </span>
                     </div>
                     <div class="flex flex-col gap-2">
-                        <div class="flex flex-row justify-start items-center gap-4 w-full">
+                        <div class="flex flex-row justify-center md:justify-start items-center gap-4 w-full">
                             <input type="password" placeholder="Enter your password"
-                                class="text-sm bg-transparent w-1/3 shadow-xs focus:outline-none border-b text-center border-gray-300 focus:border-gray-300"
+                                class="text-sm bg-transparent w-full md:w-1/3 shadow-xs focus:outline-none border-b text-center border-gray-300 focus:border-gray-300"
                                 v-model="deletePasswordWarning" />
                         </div>
                         <div class="flex flex-row justify-start items-center gap-4 w-full">
                             <button @click="authStore.deleteAccount(deletePasswordWarning)"
-                                class="bg-red-400 hover:bg-red-600 shadow-md flex justify-center items-center gap-2 hover:shadow-lg rounded-md p-2 m-2 w-1/3"
+                                class="bg-red-400 hover:bg-red-600 shadow-md flex justify-center items-center gap-2 hover:shadow-lg rounded-md p-2 m-2 w-full md:w-1/3"
                                 :class="{ 'opacity-50 cursor-not-allowed': deletePasswordWarning.length === 0 }">
                                 <span class="text-sm text-white">I want to delete my account</span>
                             </button>

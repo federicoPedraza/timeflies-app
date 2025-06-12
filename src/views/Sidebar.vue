@@ -7,23 +7,26 @@ import ConfigModal from '@/components/modals/ConfigModal.vue';
 import { useCalendarStore } from '@/stores/calendar';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import Calendar from './Calendar.vue';
 import { useSettingsStore } from '@/stores/settings';
 
 const router = useRouter()
 const calendarStore = useCalendarStore()
 const authStore = useAuthStore()
-const configModal = ref(false)
+const configModal = ref<boolean>(false)
 const settingsStore = useSettingsStore()
 
 const calendarRef = defineModel<InstanceType<typeof Calendar>>('calendarRef')
+const emit = defineEmits(['config-modal-open'])
 
 const handleScrollToHour = (hour: number, highlightEventId: string | null = null) => {
   calendarRef.value?.scrollToHour(hour, highlightEventId)
 }
 
 const handleSettingsClick = () => {
+  // emit config modal open
+  emit('config-modal-open', true)
   configModal.value = true
 }
 
@@ -45,7 +48,6 @@ const handleMoreClick = () => {
 
   calendarStore.createGhostEvent(snapped)
 }
-
 </script>
 
 <template>
