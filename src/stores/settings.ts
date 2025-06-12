@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import moment from 'moment-timezone'
 
 export const useSettingsStore = defineStore('settings', () => {
     // Load settings from local storage or use defaults
@@ -29,11 +30,21 @@ export const useSettingsStore = defineStore('settings', () => {
         localStorage.setItem('settings', JSON.stringify(currentSettings))
     }
 
+    const toTimezone = (date: Date): string => {
+        return toMoment(date).format('YYYY-MM-DD HH:mm:ss z')
+    }
+
+    const toMoment = (date: Date): moment.Moment => {
+        return moment.utc(date).tz(timezone.value)
+    }
+
     return {
         timeNotation,
         startsWithSunday,
         focusHourOnStart,
         timezone,
-        settimezone
+        settimezone,
+        toTimezone,
+        toMoment
     }
 })

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useCalendarStore } from '@/stores/calendar';
+import { useSettingsStore } from '@/stores/settings';
 import type { TimeEvent } from '@/stores/events'
 import { format } from 'date-fns';
 import { computed } from 'vue';
 
 const calendarStore = useCalendarStore()
+const settingsStore = useSettingsStore()
 
 const props = defineProps<{
   event: TimeEvent,
@@ -17,11 +19,13 @@ const props = defineProps<{
 }>()
 
 const getEventTime = (event: TimeEvent) => {
-  return props.isMultiDay ? (format(event.start, 'MMM d') + ' ⋅ ' + format(event.start, ' HH:mm a')) : format(event.start, 'HH:mm')
+  const time = settingsStore.toMoment(event.start)
+  return props.isMultiDay ? time.format('MMM d') + ' ⋅ ' + time.format(' HH:mm a') : time.format('HH:mm')
 }
 
 const getEventTimeEnd = (event: TimeEvent) => {
-  return format(event.end, 'HH:mm a')
+  const time = settingsStore.toMoment(event.end)
+  return time.format('HH:mm a')
 }
 
 const getEventTimeShort = (event: TimeEvent) => {

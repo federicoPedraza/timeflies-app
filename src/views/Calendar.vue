@@ -61,7 +61,10 @@ let hasScrolledToStartingHour = false
 const hours = Array.from({ length: 24 }, (_, i) => i)
 
 const isWeekend = (day: string) => day === 'SAT' || day === 'SUN'
-const isToday = (date: Date) => isSameDay(date, calendarStore.today)
+
+const isToday = (date: Date) => {
+  return settingsStore.toMoment(date).isSame(settingsStore.toMoment(new Date()), 'day')
+}
 
 const calendarContainerRef = ref<HTMLElement | null>(null)
 const bodyScrollContainer = ref<HTMLElement | null>(null)
@@ -77,9 +80,9 @@ const getCurrentHourIndicator = () => {
 }
 
 const updateCurrentHourFraction = () => {
-  const now = new Date()
-  const hour = now.getHours()
-  const minute = now.getMinutes()
+  const now = settingsStore.toMoment(new Date())
+  const hour = now.hour()
+  const minute = now.minute()
   currentHourFraction.value = hour + (minute / 60)
 }
 
@@ -123,6 +126,7 @@ const scrollToDay = (dayIndex: number) => {
     el.scrollLeft = dayIndex * dayWidth.value
   }
 }
+
 const getEventsForCell = (date: Date, hour: number) => {
   const allEvents = [...eventStore.events]
   if (calendarStore.ghostEvent) {
@@ -130,14 +134,14 @@ const getEventsForCell = (date: Date, hour: number) => {
   }
 
   const events = allEvents.filter(event => {
-    const start = new Date(event.start)
-    const end = new Date(event.end)
+    const start = settingsStore.toMoment(event.start).toDate()
+    const end = settingsStore.toMoment(event.end).toDate()
 
     const isSame = isSameDay(start, date)
     const isContinued = !isSame && start < date && end > date
 
     if (isContinued && hour === 0) return true
-    if (isSame && start.getHours() === hour) return true
+    if (isSame && settingsStore.toMoment(event.start).hour() === hour) return true
 
     return false
   })
@@ -146,24 +150,25 @@ const getEventsForCell = (date: Date, hour: number) => {
 }
 
 const getEventStyle = (event: TimeEvent, currentDate: Date) => {
-  const start = new Date(event.start)
-  const end = new Date(event.end)
+  const start = settingsStore.toMoment(event.start)
+  const end = settingsStore.toMoment(event.end)
+  const current = settingsStore.toMoment(currentDate).startOf('day')
 
-  const isStartDay = isSameDay(start, currentDate)
+  const isStartDay = start.isSame(current, 'day')
 
-  const topOffset = isStartDay ? (start.getMinutes() / 60) * 72 : 0
+  const topOffset = isStartDay ? (start.minutes() / 60) * 72 : 0
 
   let height: number
 
   if (isStartDay) {
-    const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60)
-    height = Math.min(durationHours * 72, (24 - start.getHours() - (start.getMinutes() / 60)) * 72)
+    const durationHours = end.diff(start, 'minutes') / 60
+    const endOfDay = current.clone().endOf('day')
+    const maxDuration = endOfDay.diff(start, 'minutes') / 60
+    height = Math.min(durationHours * 72, maxDuration * 72)
   } else {
-    const midnight = new Date(currentDate)
-    midnight.setHours(0, 0, 0, 0)
-
-    const endTime = end < new Date(midnight.getTime() + 86400000) ? end : new Date(midnight.getTime() + 86400000)
-    const durationHours = (endTime.getTime() - midnight.getTime()) / (1000 * 60 * 60)
+    const startOfDay = current.clone().startOf('day')
+    const endTime = moment.min(end, current.clone().endOf('day'))
+    const durationHours = endTime.diff(startOfDay, 'minutes') / 60
     height = durationHours * 72
   }
 
@@ -174,55 +179,53 @@ const getEventStyle = (event: TimeEvent, currentDate: Date) => {
   }
 }
 
+
 const shouldRenderGhostEvent = (ghost: TimeEvent, date: Date, hour: number) => {
-  const start = new Date(ghost.start)
-  const end = new Date(ghost.end)
+  const start = settingsStore.toMoment(ghost.start)
+  const end = settingsStore.toMoment(ghost.end)
+  const current = settingsStore.toMoment(date).startOf('hour')
 
-  const isStartDay = isSameDay(start, date)
-  const isContinuation = !isStartDay && (isSameDay(end, date) || (date > start && date < end))
+  const isStartDay = start.isSame(current, 'day')
+  const isContinuation = !isStartDay && (end.isSame(current, 'day') || (current.isAfter(start) && current.isBefore(end)))
 
-  return (isStartDay && start.getHours() === hour) || (isContinuation && hour === 0)
+  return (isStartDay && start.hour() === hour) || (isContinuation && hour === 0)
 }
 
 const isMultiDay = (event: TimeEvent) => {
-  return moment(event.start).format('YYYY-MM-DD') !== moment(event.end).format('YYYY-MM-DD')
+  const start = settingsStore.toMoment(event.start)
+  const end = settingsStore.toMoment(event.end)
+
+  return !start.isSame(end, 'day')
 }
 
 const hasEventCrossingHalfHour = (date: Date, hour: number) => {
-  const cellStart = new Date(date)
-  cellStart.setHours(hour, 0, 0, 0)
-
-  const halfHour = new Date(cellStart)
-  halfHour.setMinutes(30)
-
-  const cellEnd = new Date(cellStart)
-  cellEnd.setHours(hour + 1, 0, 0, 0)
+  const cellStart = settingsStore.toMoment(date).hour(hour).minute(0).second(0).millisecond(0)
+  const halfHour = cellStart.clone().add(30, 'minutes')
 
   return eventStore.events.some(event => {
-    const eventStart = new Date(event.start)
-    const eventEnd = new Date(event.end)
+    const start = settingsStore.toMoment(event.start)
+    const end = settingsStore.toMoment(event.end)
 
-    // Event spans across the :30 mark within this hour
-    return isSameDay(eventStart, date) &&
-      eventStart < halfHour &&
-      eventEnd > halfHour
+    return start.isSame(cellStart, 'day') &&
+      start.isBefore(halfHour) &&
+      end.isAfter(halfHour)
   })
 }
 
 const hasEventOnFullHour = (date: Date, hour: number) => {
-  const fullHour = new Date(date)
-  fullHour.setHours(hour, 0, 0, 0)
+  const fullHour = settingsStore.toMoment(date).hour(hour).minute(0).second(0).millisecond(0)
 
   return eventStore.events.some(event => {
-    const start = new Date(event.start)
-    const end = new Date(event.end)
+    const start = settingsStore.toMoment(event.start)
+    const end = settingsStore.toMoment(event.end)
 
-    return isSameDay(start, date) &&
-      start.getTime() < fullHour.getTime() &&
-      end.getTime() > fullHour.getTime() &&
-      end.getTime() !== fullHour.getTime() // ← filter exact match
+    return start.isSame(fullHour, 'day') &&
+      start.isBefore(fullHour) &&
+      end.isAfter(fullHour) &&
+      !end.isSame(fullHour)
   })
 }
+
 
 function groupOverlappingClusters(events: TimeEvent[]): TimeEvent[][] {
   const sorted = [...events].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
@@ -494,7 +497,6 @@ watchEffect(() => {
 const onCellClick = (date: Date, hour: number, e: MouseEvent) => {
   if (calendarStore.ghostEvent) return
 
-  // prevent opening event popup on event click
   const target = e.target as HTMLElement
   if (target.closest('.calendar-event')) return
 
@@ -502,8 +504,14 @@ const onCellClick = (date: Date, hour: number, e: MouseEvent) => {
   const clickY = e.clientY - cellRect.top
   const minutes = Math.round((clickY / 72) * 60)
 
-  const start = new Date(date)
-  start.setHours(hour, minutes, 0, 0)
+  const start = settingsStore
+    .toMoment(date)
+    .hour(hour)
+    .minute(minutes)
+    .second(0)
+    .millisecond(0)
+    .toDate()
+
   calendarStore.createGhostEvent(start, cellRect.left, cellRect.top)
 }
 
@@ -538,7 +546,7 @@ defineExpose({ scrollToHour, highlightEvent })
             ]">
               <div class="flex flex-col pt-1 pr-2 pb-4 pl-2">
                 <span class="text-[10px] font-bold text-[#71717A]">{{ getDayName(date) }}</span>
-                <span class="text-2xl text-black">{{ moment(date).format('dd') }}</span>
+                <span class="text-2xl text-black">{{ settingsStore.toMoment(date).format('DD') }}</span>
               </div>
             </CalendarCell>
           </div>

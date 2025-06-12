@@ -9,11 +9,13 @@ import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
 import { ref } from 'vue';
 import Calendar from './Calendar.vue';
+import { useSettingsStore } from '@/stores/settings';
 
 const router = useRouter()
 const calendarStore = useCalendarStore()
 const authStore = useAuthStore()
 const configModal = ref(false)
+const settingsStore = useSettingsStore()
 
 const calendarRef = defineModel<InstanceType<typeof Calendar>>('calendarRef')
 
@@ -32,11 +34,18 @@ const handleLogoutClick = async () => {
 }
 
 const handleMoreClick = () => {
-  const today = new Date()
-  const closestNext5MinuteMark = Math.round(today.getMinutes() / 5) * 5
-  today.setMinutes(closestNext5MinuteMark)
-  calendarStore.createGhostEvent(today)
+  const now = settingsStore.toMoment(new Date())
+  const roundedMinute = Math.round(now.minute() / 5) * 5
+
+  const snapped = now
+    .minute(roundedMinute)
+    .second(0)
+    .millisecond(0)
+    .toDate()
+
+  calendarStore.createGhostEvent(snapped)
 }
+
 </script>
 
 <template>

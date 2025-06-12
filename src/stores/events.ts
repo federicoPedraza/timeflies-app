@@ -7,6 +7,7 @@ import { getEndOfMonth } from '@/utils/dates/date-formatter.ts'
 import { startOfWeek, endOfWeek } from 'date-fns'
 import { useToast } from './toast.ts'
 import MessageToast from '@/components/toast/MessageToast.vue'
+import { useSettingsStore } from './settings.ts'
 
 const API = import.meta.env.VITE_API_BASE_URL
 
@@ -26,13 +27,13 @@ export const useEventStore = defineStore('events', () => {
 
   async function fetchEvents(start?: Date, end?: Date) {
     const calendarStore = useCalendarStore()
-
+    const settingsStore = useSettingsStore()
     if (!start || !end) {
       const monthStart = getStartOfMonth(calendarStore.visibleMonth)
       const monthEnd = getEndOfMonth(calendarStore.visibleMonth)
 
-      start = startOfWeek(monthStart, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 })
-      end = endOfWeek(monthEnd, { weekStartsOn: calendarStore.startsWithSunday ? 0 : 1 })
+      start = startOfWeek(monthStart, { weekStartsOn: settingsStore.startsWithSunday ? 0 : 1 })
+      end = endOfWeek(monthEnd, { weekStartsOn: settingsStore.startsWithSunday ? 0 : 1 })
     }
 
     loading.value = true
