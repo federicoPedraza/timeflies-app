@@ -49,15 +49,17 @@ const handleMoreClick = () => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 p-4 bg-[#18181B] w-[30%]">
-    <div class="flex flex-row gap-2.5 w-full justify-center">
-      <SidebarHeaderButton icon="more-icon" alt="open add event menu" @click="handleMoreClick" />
-      <SidebarHeaderButton icon="settings-icon" alt="open settings menu" @click="handleSettingsClick" />
-      <SidebarHeaderButton icon="logout-icon" alt="logout" @click="handleLogoutClick" />
+  <div class="flex flex-col h-full gap-4 p-4  overflow-y-auto overflow-x-hidden bg-bland-dark text-white">
+    <div class="flex justify-center space-x-2 ">
+      <SidebarHeaderButton icon="more-icon" alt="Open add event menu" @click="handleMoreClick" />
+      <SidebarHeaderButton icon="settings-icon" alt="Open settings menu" @click="handleSettingsClick" />
+      <SidebarHeaderButton icon="logout-icon" alt="Logout" @click="handleLogoutClick" />
     </div>
-    <SidebarMonth :month="calendarStore.visibleMonth" />
-    <SidebarCalendar />
-    <SidebarSummary @scroll-to-hour="handleScrollToHour" />
-    <ConfigModal v-if="configModal" @close="configModal = false" />
+    <div class="flex flex-col gap-2 mt-0 sm:mt-12">
+      <SidebarMonth :month="calendarStore.visibleMonth" />
+      <SidebarCalendar />
+      <SidebarSummary @scroll-to-hour="handleScrollToHour" />
+      <ConfigModal v-if="configModal" @close="configModal = false" />
+    </div>
   </div>
 </template>

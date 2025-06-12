@@ -196,10 +196,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="flex flex-col gap-4 h-full pl-4 overflow-y-auto">
-        <div v-for="day in summaryCount" :key="day" class="flex flex-row gap-2">
+    <div class="flex flex-col gap-4 h-full pl-4 overflow-y-auto overflow-x-hidden bg-bland-dark">
+        <div v-for="day in summaryCount" :key="day" class="flex flex-row gap-2 flex-shrink-0">
             <div class="flex flex-col gap-2 w-full">
-                <div class="flex flex-row justify-between items-center">
+                <div class="flex flex-col sm:flex-row lg:flex-row sm:justify-between sm:items-center gap-1">
                     <div class="flex flex-row justify-start items-center gap-2">
                         <span class="text-sm font-bold" :class="getDayColor(getDay(day))">{{
                             getDayName(getDay(day)).toUpperCase() }}</span>
@@ -220,7 +220,7 @@ onUnmounted(() => {
                         </div>
                     </div>
                 </div>
-                <div class="flex flex-col gap-2 w-full">
+                <div class="flex flex-col gap-2 my-4 md:my-0 sm:my-0 w-full">
                     <button v-for="event in getEvents(getDay(day))" :key="event.id"
                         class="flex flex-row justify-start items-start gap-2 group w-full" @click="onEventClick(event)">
                         <div class="flex flex-row gap-2">

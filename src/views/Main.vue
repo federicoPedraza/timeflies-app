@@ -69,33 +69,70 @@ onMounted(() => {
 
 let intervalId: ReturnType<typeof setInterval>
 
+const isSidebarOpen = ref(false)
+
+function toggleSidebar() {
+  isSidebarOpen.value = !isSidebarOpen.value
+}
+
 onUnmounted(() => {
   clearInterval(intervalId)
 })
 </script>
 
 <template>
-  <div class="main">
-    <Sidebar v-model:calendar-ref="calendarRef" />
-    <Calendar ref="calendarRef" />
+  <div class="flex h-screen overflow-hidden ">
+    <!-- Desktop sidebar (md+) -->
+    <aside class="hidden md:flex md:flex-col md:w-auto  bg-bland-dark text-white p-6">
+      <Sidebar />
+    </aside>
+
+    <!-- Main area -->
+    <div class="flex-1 relative flex flex-col">
+      <!-- Mobile toggle button -->
+      <button
+        @click="toggleSidebar"
+        class="fixed top-[30px]  right-6 z-[51] md:hidden  bg-bland-dark text-white rounded-lg shadow focus:outline-none focus:ring"
+        aria-label="Toggle menu"
+      >
+        <!-- Hamburger when closed -->
+        <svg
+          v-if="!isSidebarOpen"
+          class="w-9 h-9 p-2.5 border-gray-200"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+
+        <!-- X when open -->
+        <svg
+          v-else
+          class="w-9 h-9 p-2.5 border-gray-200 border rounded-md"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Mobile drawer (full viewport) -->
+      <aside
+        class="fixed inset-0 bg-bland-dark text-white transform transition-transform duration-300 z-50 ease-in-out md:hidden
+               p-3 sm:p-4"
+        :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+      >
+        <Sidebar />
+      </aside>
+
+      <!-- Main content area -->
+      <main class="flex-1 bg-gray-100 overflow-auto pt-2 md:p-8">
+        <Calendar />
+      </main>
+    </div>
   </div>
 </template>
-
-<style scoped lang="css">
-.main {
-    display: flex;
-    flex-direction: row;
-    height: 100vh;
-    width: 100vw;
-}
-
-.main :deep(.sidebar) {
-    width: 26%;
-    height: 100%;
-}
-
-.main :deep(.calendar) {
-    flex: 1;
-    height: 100%;
-}
-</style>
