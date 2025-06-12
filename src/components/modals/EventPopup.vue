@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useCalendarStore } from '@/stores/calendar';
 import { useEventStore, type TimeEvent } from '@/stores/events'
-import { differenceInCalendarDays, differenceInMinutes, formatDate, isToday, isBefore, isAfter, isWithinInterval, formatDistanceToNow, parseISO, getDaysInMonth } from 'date-fns';
+import { useSettingsStore } from '@/stores/settings';
+import { differenceInMinutes, formatDate, parseISO, getDaysInMonth } from 'date-fns';
 import { computed, nextTick, ref, onMounted } from 'vue';
 
 const props = defineProps<{
@@ -17,6 +18,7 @@ const emit = defineEmits<{
 
 const eventStore = useEventStore()
 const calendarStore = useCalendarStore()
+const settingsStore = useSettingsStore()
 
 const popupRef = ref<HTMLElement | null>(null)
 
@@ -74,28 +76,31 @@ const getEventDuration = (start: Date, end: Date) => {
 }
 
 const getEventDateDifference = (start: Date, end: Date) => {
-  const now = new Date()
+  const now = settingsStore.toMoment(new Date())
+  const startMoment = settingsStore.toMoment(start)
+  const endMoment = settingsStore.toMoment(end)
 
-  if (isToday(start)) {
-    if (isBefore(now, start)) {
-      const diff = formatDistanceToNow(start, { addSuffix: false })
+  if (startMoment.isSame(now, 'day')) {
+    if (now.isBefore(startMoment)) {
+      const diff = startMoment.from(now, true)
       return `Starts in ${diff}`
-    } else if (isWithinInterval(now, { start, end })) {
-      const diff = formatDistanceToNow(end, { addSuffix: false })
+    } else if (now.isBetween(startMoment, endMoment)) {
+      const diff = endMoment.from(now, true)
       return `Ends in ${diff}`
-    } else if (isAfter(now, end)) {
-      const diff = formatDistanceToNow(end, { addSuffix: false })
+    } else if (now.isAfter(endMoment)) {
+      const diff = endMoment.from(now, true)
       return `Ended ${diff} ago`
     }
   }
 
-  const daysDiff = differenceInCalendarDays(start, now)
+  const daysDiff = startMoment.startOf('day').diff(now.startOf('day'), 'days')
   if (daysDiff === 1) return 'Tomorrow'
   if (daysDiff === -1) return 'Yesterday'
   if (daysDiff === 0) return 'Today'
   if (daysDiff > 1) return `In ${daysDiff} days`
   return `${Math.abs(daysDiff)} days ago`
 }
+
 
 const isEditMode = ref(false)
 const isTryingToDelete = ref(false)
@@ -250,10 +255,6 @@ const isChanged = (field: 'title' | 'description' | 'end' | 'start') => {
 const hasChanges = computed(() => {
   return isChanged('title') || isChanged('description') || isChanged('end') || isChanged('start')
 })
-
-const discardChanges = (field: 'title' | 'description') => {
-  changes.value[field] = props.event[field]
-}
 
 const titleBorderClass = computed(() => {
   return {
@@ -410,9 +411,9 @@ const saveChanges = async () => {
         <div class="flex flex-col gap-2">
           <div v-if="!isEditMode" class="flex flex-col justify-start items-start gap-2 w-full">
             <span class="text-xs text-[#71717A]">
-              {{ getEventDayName(event.start) }}, {{ getEventDay(event.start) }} {{ getEventMonth(event.start) }} ⋅ {{
-                formatDate(event.start, 'HH:mm') }} - {{ formatDate(event.end, 'HH:mm') }}
-                {{ event.end.getDate() === event.start.getDate() ? '' :  '⋅' +  getEventDayName(event.end) }}{{ event.end.getDate() === event.start.getDate() ? '' : ', ' + getEventDay(event.end) }} {{ event.end.getDate() === event.start.getDate() ? '' : getEventMonth(event.end) }}
+              {{ settingsStore.toMoment(event.start).format('dddd, DD MMMM') }} ⋅ {{
+                settingsStore.toMoment(event.start).format('HH:mm') }} - {{ settingsStore.toMoment(event.end).format('HH:mm') }}
+                {{ settingsStore.toMoment(event.end).isSame(settingsStore.toMoment(event.start), 'day') ? '' :  '⋅' +  settingsStore.toMoment(event.end).format('dddd, DD MMMM') }}
             </span>
             <span class="text-xs text-[#71717A]">
               {{ getEventDateDifference(event.start, event.end) }} ⋅ Runs for {{ getEventDuration(event.start,

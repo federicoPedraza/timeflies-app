@@ -133,21 +133,37 @@ const getEventsForCell = (date: Date, hour: number) => {
     allEvents.push(calendarStore.ghostEvent)
   }
 
+  const renderedEventIds = new Set<string>()
+
   const events = allEvents.filter(event => {
-    const start = settingsStore.toMoment(event.start).toDate()
-    const end = settingsStore.toMoment(event.end).toDate()
+    const id = event.id
+    const start = settingsStore.toMoment(event.start)
+    const end = settingsStore.toMoment(event.end)
 
-    const isSame = isSameDay(start, date)
-    const isContinued = !isSame && start < date && end > date
+    const cellStart = settingsStore.toMoment(date).hour(hour).minute(0).second(0).millisecond(0)
+    const cellEnd = cellStart.clone().add(1, 'hour')
 
-    if (isContinued && hour === 0) return true
-    if (isSame && settingsStore.toMoment(event.start).hour() === hour) return true
+    const shouldRender = start.isBefore(cellEnd) && end.isAfter(cellStart)
 
-    return false
+    if (!shouldRender) return false
+    if (renderedEventIds.has(id)) return false
+
+    // Check if this is the first hour in this day the event overlaps
+    for (let h = 0; h < hour; h++) {
+      const prevStart = settingsStore.toMoment(date).hour(h).minute(0).second(0).millisecond(0)
+      const prevEnd = prevStart.clone().add(1, 'hour')
+      if (start.isBefore(prevEnd) && end.isAfter(prevStart)) {
+        return false
+      }
+    }
+
+    renderedEventIds.add(id)
+    return true
   })
 
   return events
 }
+
 
 const getEventStyle = (event: TimeEvent, currentDate: Date) => {
   const start = settingsStore.toMoment(event.start)
