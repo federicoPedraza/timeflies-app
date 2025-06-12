@@ -13,7 +13,7 @@ const toastStore = useToast()
   <main>
     <router-view />
   </main>
-  <div class="toast-container flex flex-col gap-4">
+  <div class="toast-container flex flex-col gap-4 left-1/2 -translate-x-1/2 md:left-auto md:right-[10vh] md:translate-x-0">
     <Toast
       v-for="toast in toastStore.toasts"
       :key="toast.id"
@@ -36,7 +36,6 @@ main {
 .toast-container {
   position: fixed;
   bottom: 5vh;
-  right: 10vh;
   z-index: 1000;
 }
 </style>
