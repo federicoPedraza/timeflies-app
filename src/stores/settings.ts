@@ -20,7 +20,15 @@ export const useSettingsStore = defineStore('settings', () => {
 
     const settimezone = (newTimezone: string) => {
         timezone.value = newTimezone
-        // Update local storage when timezone changes
+        writeSettings()
+    }
+
+    const setWeekStartsOnSunday = (value: boolean) => {
+        startsWithSunday.value = value
+        writeSettings()
+    }
+
+    const writeSettings = () => {
         const currentSettings = {
             timeNotation: timeNotation.value,
             startsWithSunday: startsWithSunday.value,
@@ -44,6 +52,7 @@ export const useSettingsStore = defineStore('settings', () => {
         focusHourOnStart,
         timezone,
         settimezone,
+        setWeekStartsOnSunday,
         toTimezone,
         toMoment
     }

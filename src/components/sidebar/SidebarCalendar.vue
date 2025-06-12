@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted  } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { useCalendarStore } from '@/stores/calendar'
 import {
   startOfMonth,
@@ -22,7 +22,7 @@ const settingsStore = useSettingsStore()
 
 const router = useRouter()
 
-const dayNames = calendarStore.getDayNamesInOrder()
+const dayNames = ref(calendarStore.getDayNamesInOrder())
 
 const monthStart = startOfMonth(calendarStore.visibleMonth)
 const monthEnd = endOfMonth(calendarStore.visibleMonth)
@@ -39,7 +39,7 @@ for (let i = 0; i < fullGridDates.length; i += 7) {
 }
 
 const isToday = (date: Date) => {
-    return moment.tz(date, settingsStore.timezone).isSame(moment.tz(settingsStore.toMoment(new Date()), settingsStore.timezone), 'day')
+  return moment.tz(date, settingsStore.timezone).isSame(moment.tz(settingsStore.toMoment(new Date()), settingsStore.timezone), 'day')
 }
 
 
@@ -92,6 +92,19 @@ onMounted(() => {
   }
 })
 
+watch(() => settingsStore.startsWithSunday, (newVal) => {
+  const firstVisibleDate = startOfWeek(monthStart, { weekStartsOn: newVal ? 0 : 1 })
+  const lastVisibleDate = endOfWeek(monthEnd, { weekStartsOn: newVal ? 0 : 1 })
+
+  const fullGridDates = eachDayOfInterval({ start: firstVisibleDate, end: lastVisibleDate })
+
+  weeks.value = []
+  for (let i = 0; i < fullGridDates.length; i += 7) {
+    weeks.value.push(fullGridDates.slice(i, i + 7))
+  }
+
+  dayNames.value = calendarStore.getDayNamesInOrder()
+})
 </script>
 
 <template>
@@ -111,7 +124,8 @@ onMounted(() => {
         <td v-for="date in week" :key="date.toDateString()"
           class="flex-1 text-center text-sm flex flex-col items-center justify-center"
           :class="isSameMonth(date, calendarStore.visibleMonth) ? 'text-white' : 'text-[#71717A]'">
-          <button type="button" @click="handleDateClick(date)" class="flex flex-col items-center justify-center rounded-full w-8 h-8 transition-colors duration-150"
+          <button type="button" @click="handleDateClick(date)"
+            class="flex flex-col items-center justify-center rounded-full w-8 h-8 transition-colors duration-150"
             :class="[
               isToday(date) ? 'bg-[#3B82F6]' : 'bg-transparent hover:bg-[#EFF6FF]',
               isToday(date) ? 'hover:bg-[#6aa3ff]' : 'hover:bg-[#EFF6FF]',
@@ -122,7 +136,8 @@ onMounted(() => {
             <span class="font-semibold text-[11px]">
               {{ format(date, 'd') }}
             </span>
-            <div v-if="eventStore.events.some(e => isSameDay(e.start, date))" class="w-1 h-1 rounded-full" :class="!isToday(date) ? 'bg-[#3B82F6]' : 'bg-white'"></div>
+            <div v-if="eventStore.events.some(e => isSameDay(e.start, date))" class="w-1 h-1 rounded-full"
+              :class="!isToday(date) ? 'bg-[#3B82F6]' : 'bg-white'"></div>
           </button>
         </td>
       </tr>

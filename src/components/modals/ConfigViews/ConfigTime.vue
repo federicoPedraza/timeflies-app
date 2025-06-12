@@ -3,8 +3,10 @@ import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
 import moment from 'moment-timezone';
 import { useAuthStore } from '@/stores/auth';
+import { useCalendarStore } from '@/stores/calendar';
 
 const settingsStore = useSettingsStore();
+const calendarStore = useCalendarStore();
 
 const timezone = ref(settingsStore.timezone);
 const isOpen = ref(false);
@@ -32,18 +34,22 @@ const handleTimezoneChange = async (value: string) => {
     isOpen.value = false;
     timezoneSearchInput.value = '';
 
-    console.log({
-        timeNotation: settingsStore.timeNotation,
-        weekStartsOnSunday: settingsStore.startsWithSunday,
-        focusHourOnStart: settingsStore.focusHourOnStart,
-        timezone: value,
-    })
-
     await useAuthStore().updateSettings({
         timeNotation: settingsStore.timeNotation,
         weekStartsOnSunday: settingsStore.startsWithSunday,
         focusHourOnStart: settingsStore.focusHourOnStart,
         timezone: value,
+    })
+}
+
+const handleWeekStartChange = async (value: boolean) => {
+    settingsStore.setWeekStartsOnSunday(value);
+
+    await useAuthStore().updateSettings({
+        timeNotation: settingsStore.timeNotation,
+        weekStartsOnSunday: value,
+        focusHourOnStart: settingsStore.focusHourOnStart,
+        timezone: settingsStore.timezone,
     })
 }
 
@@ -133,6 +139,27 @@ onUnmounted(() => {
                 </div>
             </div>
             <button @click="handleReset" class="text-sm text-left w-1/3  text-gray-500 hover:text-gray-900 hover:underline">Reset to local timezone</button>
+            <div class="w-full h-[1px] my-4 bg-gray-200"></div>
+        </div>
+        <div class="flex flex-col justify-start gap-2">
+            <h3 class="text-sm font-semibold">Preferences</h3>
+            <span class="text-sm text-gray-500">Select your time notation and week start.</span>
+            <div class="flex flex-col justify-start items-start my-2">
+                <div class="flex flex-row justify-between items-center w-full gap-8">
+                    <label class="flex flex-row justify-start items-center gap-2 w-full">
+                        <input type="checkbox" v-model="settingsStore.startsWithSunday" @change="(e) => handleWeekStartChange((e.target as HTMLInputElement).checked)" />
+                        <div class="flex flex-row justify-between items-center w-full">
+                            <span class="text-sm text-gray-500">Week starts on Sunday</span>
+                            <div class="flex flex-row justify-start items-center gap-1 text-xs">
+                                <template v-for="(day, index) in calendarStore.getDayNamesInOrder()" :key="day">
+                                    <span :class="index === 0 || index === calendarStore.getDayNamesInOrder().length - 1 ? 'text-gray-600' : 'text-gray-400'">{{ day }}</span>
+                                    <span v-if="index < calendarStore.getDayNamesInOrder().length - 1" class="text-gray-400"> | </span>
+                                </template>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
         </div>
     </div>
 </template>

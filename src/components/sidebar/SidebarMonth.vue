@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { format, subMonths, addMonths, isSameMonth } from 'date-fns';
 import { useCalendarStore } from '@/stores/calendar';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useEventStore } from '@/stores/events';
 import { getStartOfMonth } from '@/utils/dates/date-formatter.ts';
 import { getEndOfMonth } from '@/utils/dates/date-formatter.ts';
@@ -70,6 +70,11 @@ const handleResetView = async () => {
 }
 
 const shouldShowResetView = computed(() => !isSameMonth(calendarStore.visibleMonth, calendarStore.today))
+
+watch(() => settingsStore.startsWithSunday, (newVal) => {
+    const { start, end } = getVisibleDateRange()
+    eventStore.fetchEvents(start, end)
+})
 </script>
 
 <template>
