@@ -41,13 +41,6 @@ const toastStore = useToast()
 const calendarRef = ref()
 
 onMounted(() => {
-  toastStore.addToast(
-    h(MessageToast, {
-      message: 'Welcome to the calendar!',
-    }),
-    'info',
-  )
-
   // get current month from query
   const route = useRoute()
   const month = route.query.month as string

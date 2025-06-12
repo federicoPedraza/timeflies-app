@@ -685,7 +685,7 @@ defineExpose({ scrollToHour, highlightEvent })
                   hasEventOnFullHour(date, hour + 1) ? 'border-b-transparent' : 'border-b-[#E0E0E0]',
                   'border-l-[#E0E0E0]'
                 ]" @click="(e) => onCellClick(date, hour, e)">
-                 <div class="absolute top-5 right-2 z-10">
+                 <div v-if="VISIBLE_DAYS === 1"  class="absolute top-5 right-2 z-10">
                    <CalendarHour  :timeNotation="timeNotation" :hour="hour" containerClass="justify-start whitespace-nowrap" />
                  </div>
                 <!-- FINE LINE -->

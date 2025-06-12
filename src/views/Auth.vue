@@ -1,8 +1,9 @@
 <script lang="ts" setup>
-import { onMounted, ref, watch } from 'vue'
+import { h, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/stores/toast'
+import MessageToast from '@/components/toast/MessageToast.vue'
 
 const email = ref('')
 const password = ref('')
@@ -60,6 +61,14 @@ const handleSignUp = async () => {
         if (res.accessToken) {
             await auth.fetchSettings(res.accessToken)
         }
+
+        toastStore.addToast(
+            h(MessageToast, {
+            message: 'Happy scheduling!',
+            }),
+            'info',
+        )
+
         router.push('/')
     } catch (error) {
         console.error(error)
@@ -75,12 +84,21 @@ const handleLogin = async () => {
         if (res.accessToken) {
             await auth.fetchSettings(res.accessToken)
         }
+
+        toastStore.addToast(
+            h(MessageToast, {
+            message: 'Happy scheduling!',
+            }),
+            'info',
+        )
+
         router.push('/')
     } catch (error) {
         errors.value.login = error instanceof Error ? error.message : 'An error occurred, please try again later'
     } finally {
         loading.value = false
     }
+
 }
 
 const validateEmail = () => {
@@ -221,12 +239,12 @@ onMounted(() => {
     <template v-else>
         <div class="relative flex flex-col items-center justify-center w-full h-screen background-grid">
             <div
-                class="bg-white shadow-lg border backdrop-blur-xl border-gray-200 w-1/4 min-h-1/2 rounded-3xl relative z-10">
+                class="bg-white shadow-lg border backdrop-blur-xl border-gray-200 w-full md:w-1/2 min-h-1/2 md:min-h-1/2 lg:w-1/3 xl:w-1/4 h-full md:h-auto rounded-none md:rounded-3xl relative z-10">
                 <div
-                    class="absolute left-1/2 -translate-x-1/2 -top-20 z-10 flex p-2 rounded-full border-2 border-gray-300 shadow-lg bg-white items-center justify-center">
+                    class="flex p-2 w-24 h-24 rounded-full border-2 border-gray-300 shadow-lg bg-white items-center justify-center mx-auto mt-8 md:mt-0 md:absolute md:left-1/2 md:-translate-x-1/2 md:-top-20 z-10">
                     <img src="@/assets/logo.svg" alt="Logo" class="w-24 h-24" />
                 </div>
-                <div v-if="signUpMode" class="flex flex-col items-center justify-center pt-12 gap-4">
+                <div v-if="signUpMode" class="flex flex-col items-center justify-start md:justify-center pt-4 md:pt-12 gap-4 h-full">
                     <form class="flex flex-col items-center justify-center gap-4 w-3/4">
                         <div v-if="signupPhase === 0" class="w-full flex flex-col items-center gap-6">
                             <div class="flex flex-col items-center justify-center gap-2">
@@ -338,7 +356,7 @@ onMounted(() => {
                                 </div>
                             </div>
                         </div>
-                        <div v-else-if="signupPhase === 1" class="w-full flex flex-col items-center gap-2">
+                        <div v-else-if="signupPhase === 1" class="w-full flex flex-col items-center h-full mt-10 md:mt-0 gap-2">
                             <div class="w-full">
                                 <div v-if="likedHisUsername" class="flex flex-col items-center justify-center gap-4">
                                     <span class="text-sm">Is it okay if we call you...</span>
@@ -353,10 +371,10 @@ onMounted(() => {
                             </div>
                         </div>
                         <div v-else-if="signupPhase === 2" class="w-full flex flex-col items-center gap-2">
-                            <div class="text-lg font-semibold">Welcome aboard {{ name }}!</div>
-                            <div class="flex flex-row items-center justify-center gap-2">
-                                <input type="checkbox" class="w-4 h-4" v-model="termsOfServiceAndPrivacyPolicy" />
-                                <span class="text-sm whitespace-nowrap text-center">I agree to the <a
+                            <div class="text-lg font-semibold text-center">Welcome aboard {{ name }}!</div>
+                            <div class="flex flex-row items-start lg:items-center justify-center gap-2 h-full">
+                                <input type="checkbox" class="w-4 mt-1 lg:mt-0" v-model="termsOfServiceAndPrivacyPolicy" />
+                                <span class="text-xs text-left md:text-center whitespace-nowrap w-full">I agree to the <a
                                         href="https://en.wikipedia.org/wiki/Fly" class="text-blue-500">Terms of
                                         Service</a> and <a href="https://en.wikipedia.org/wiki/Fly"
                                         class="text-blue-500">Privacy Policy</a></span>
@@ -387,8 +405,8 @@ onMounted(() => {
                         </span>
                     </button>
                 </div>
-                <div v-else class="flex flex-col items-center justify-center pt-16 gap-4">
-                    <div class="flex flex-col items-center justify-center gap-2 w-3/4">
+                <div v-else class="flex flex-col items-center justify-start md:justify-center pt-16 gap-4 h-full">
+                    <div class="flex flex-col items-center justify-center gap-2 w-full md:w-3/4">
                         <h1 class="text-2xl font-semibold">Welcome</h1>
                         <h2 class="text-sm text-gray-500">Login to your account</h2>
                     </div>
