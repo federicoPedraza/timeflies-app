@@ -1,5 +1,7 @@
 # Timeflies
 
+<img src="https://github.com/user-attachments/assets/a1c30341-380f-4799-bae5-3b6fa68449e2" alt="Timeflies Icon" width="400px" />
+
 Timeflies is a modern, responsive calendar application built with Vue 3 and TypeScript. It offers a seamless experience for managing your schedule across different time zones and devices.
 
 ## Features
