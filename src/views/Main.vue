@@ -37,9 +37,6 @@ const parseMonthQuery = (month: string) => {
   return date
 }
 
-const toastStore = useToast()
-const calendarRef = ref()
-
 onMounted(() => {
   // get current month from query
   const route = useRoute()
@@ -131,7 +128,7 @@ onUnmounted(() => {
       </aside>
 
       <!-- Main content area -->
-      <main class="flex-1 bg-gray-100 overflow-auto pt-2 md:p-8">
+      <main class="flex-1 bg-gray-100 overflow-auto pt-2 md:p-3">
         <Calendar />
       </main>
     </div>
